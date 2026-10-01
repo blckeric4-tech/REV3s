@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { SITE_SETTINGS_DEFAULTS } from "../src/lib/settings-defaults";
 
 const db = new PrismaClient();
 
@@ -193,10 +194,12 @@ async function main() {
   console.log(`Admin user ready: ${email}`);
 
   // --- site settings singleton ---
+  // The TEXT columns have no database default (MySQL/TiDB forbid it), so the
+  // values come from here. Keep in sync with src/lib/settings-defaults.ts.
   await db.siteSettings.upsert({
     where: { id: "main" },
     update: {},
-    create: { id: "main" },
+    create: { id: "main", ...SITE_SETTINGS_DEFAULTS },
   });
   console.log("Site settings ready");
 

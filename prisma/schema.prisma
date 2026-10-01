@@ -168,59 +168,59 @@ model SiteSettings {
 
   // international contact
   whatsappNumber    String  @db.VarChar(64) @default("250788000000")
-  whatsappMessage   String  @db.Text @default("Hi RAV3S! I would like to order clothes.")
+  whatsappMessage   String  @db.Text
   whatsappOn        Boolean @default(true)
   phoneNumber       String  @db.VarChar(64) @default("+250 788 000 000")
   mapAddress        String  @db.VarChar(255) @default("Kigali, Rwanda")
-  mapEmbedUrl       String  @db.Text @default("")
-  tiktokUrl         String  @db.Text @default("https://tiktok.com/@rav3s")
-  facebookUrl       String  @db.Text @default("")
-  instagramUrl      String  @db.Text @default("https://instagram.com/rav3s")
+  mapEmbedUrl       String  @db.Text
+  tiktokUrl         String  @db.Text
+  facebookUrl       String  @db.Text
+  instagramUrl      String  @db.Text
 
   // media
-  heroVideo     String  @db.Text @default("")
-  galleryImages String  @db.Text @default("[]")
-  videoPoster   String  @db.Text @default("/images/hero.svg")
+  heroVideo     String  @db.Text
+  galleryImages String  @db.Text
+  videoPoster   String  @db.Text
   /// How the hero picture fills its frame: "contain" shows the whole photo,
   /// "cover" fills the screen and crops the edges.
   heroFit       String  @db.VarChar(16) @default("contain")
 
   // hero
-  heroKicker    String  @db.Text @default("Drop 04 — Autumn/Winter")
-  heroTitle     String  @db.Text @default("BUILT FOR THE LONG WAY ROUND")
-  heroBody      String  @db.Text @default("Heavyweight tees and knitwear cut from fabric that gets better with every wash.")
-  heroCtaText   String  @db.Text @default("ORDER ONLINE")
-  heroCtaHref   String  @db.Text @default("/shop")
-  heroSecondaryText String @db.Text @default("New arrivals")
-  heroSecondaryHref String @db.Text @default("/shop?sort=newest")
-  heroImage     String  @db.Text @default("/images/hero.svg")
+  heroKicker    String  @db.Text
+  heroTitle     String  @db.Text
+  heroBody      String  @db.Text
+  heroCtaText   String  @db.Text
+  heroCtaHref   String  @db.Text
+  heroSecondaryText String @db.Text
+  heroSecondaryHref String @db.Text
+  heroImage     String  @db.Text
   heroHeight    String  @db.VarChar(32) @default("tall")
 
   // story / about
-  storyKicker String  @db.Text @default("The label")
-  storyTitle  String  @db.Text @default("We make fewer things, better.")
-  storyBody   String  @db.Text @default("RAV3S started in a single room with one screen printer and a stubborn idea: everyday clothes should be built to outlast the trend that sold them to you.")
-  storyImage  String  @db.Text @default("/images/story.svg")
+  storyKicker String  @db.Text
+  storyTitle  String  @db.Text
+  storyBody   String  @db.Text
+  storyImage  String  @db.Text
 
   // value props
-  valueProps String  @db.Text @default("[\"240gsm heavyweight cotton\",\"Small-batch production\",\"Free delivery over 50,000 FRW\",\"Pay with MTN, Airtel or card\"]")
+  valueProps String  @db.Text
 
   // shop page
-  shopTitle       String  @db.Text @default("The Full Range")
-  shopDescription String  @db.Text @default("Every piece we make, in every colour and size.")
+  shopTitle       String  @db.Text
+  shopDescription String  @db.Text
 
   // categories
-  categories String  @db.Text @default("[\"T-Shirts\",\"Jumpers\",\"Hoodies\",\"Outerwear\",\"Accessories\"]")
+  categories String  @db.Text
 
   // newsletter
-  newsletterTitle    String  @db.Text @default("Get first access to every drop")
-  newsletterBody     String  @db.Text @default("Sign up for early links, restocks and nothing else.")
+  newsletterTitle    String  @db.Text
+  newsletterBody     String  @db.Text
   newsletterEnabled  Boolean @default(true)
 
   // footer
-  footerAbout    String  @db.Text @default("RAV3S is an independent label making heavyweight essentials in small runs.")
-  footerInstagram String @db.Text @default("https://instagram.com/rav3s")
-  footerTiktok    String @db.Text @default("https://tiktok.com/@rav3s")
+  footerAbout    String  @db.Text
+  footerInstagram String @db.Text
+  footerTiktok    String @db.Text
   footerEmail     String @db.VarChar(320) @default("hello@rav3s.com")
   footerAddress   String @db.VarChar(255) @default("Kigali, Rwanda")
 

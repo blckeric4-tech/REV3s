@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { db } from "@/lib/prisma";
 import { parseList } from "@/lib/money";
+import { SITE_SETTINGS_DEFAULTS } from "@/lib/settings-defaults";
 
 /**
  * The single source of truth for everything the admin can edit.
@@ -9,7 +10,9 @@ import { parseList } from "@/lib/money";
 export const getSettings = cache(async () => {
   const existing = await db.siteSettings.findUnique({ where: { id: "main" } });
   if (existing) return existing;
-  return db.siteSettings.create({ data: { id: "main" } });
+  // The TEXT columns carry no database default — MySQL/TiDB will not allow one —
+  // so a brand new database has to be given the full field set here.
+  return db.siteSettings.create({ data: { id: "main", ...SITE_SETTINGS_DEFAULTS } });
 });
 
 export type Settings = Awaited<ReturnType<typeof getSettings>>;
