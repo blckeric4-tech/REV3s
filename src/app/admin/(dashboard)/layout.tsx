@@ -5,6 +5,8 @@ import { AdminNav } from "@/components/admin/admin-nav";
 import { logout } from "@/app/admin/actions";
 import { ConfirmButton } from "@/components/admin/confirm-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { getTranslator } from "@/lib/i18n";
 
 export default async function AdminDashboardLayout({
   children,
@@ -12,6 +14,7 @@ export default async function AdminDashboardLayout({
   children: React.ReactNode;
 }) {
   const user = await requireAdmin();
+  const { t, locale } = await getTranslator();
 
   const [productCount, lowStock, pending] = await Promise.all([
     db.product.count({ where: { active: true } }),
@@ -27,20 +30,25 @@ export default async function AdminDashboardLayout({
             RAV3S
             <span className="ml-1 inline-block h-2 w-2 rounded-full align-top bg-inverse-fg" />
             <span className="ml-2 align-middle text-[10px] font-normal uppercase tracking-[0.2em] text-inverse-fg/70">
-              Admin
+              {t("admin.title")}
             </span>
           </Link>
         </div>
 
         <AdminNav
           counts={{ products: productCount, lowStock, orders: pending }}
+          t={t}
         />
 
-        <div className="border-t border-inverse-fg/20 p-5 lg:mt-auto">
-          <p className="text-xs text-inverse-fg/70">Signed in as</p>
-          <p className="mt-0.5 truncate text-sm">{user.email}</p>
-          <div className="mt-4 flex flex-col gap-2">
-            <div className="flex justify-center pb-1">
+        <div className="border-t border-inverse-fg/20 p-4 lg:mt-auto lg:p-5">
+          <p className="text-xs text-inverse-fg/70">
+            {t("admin.signedInAs")}{" "}
+            <span className="break-anywhere text-inverse-fg">{user.email}</span>
+          </p>
+          {/* On a phone these stack full-height and push the dashboard itself
+              a long way down the page, so they sit in a row until lg. */}
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row lg:mt-4 lg:flex-col">
+            <div className="flex justify-center pb-1 lg:hidden">
               <ThemeToggle
                 variant="labelled"
                 className="border-inverse-fg/30 text-inverse-fg hover:bg-inverse-fg hover:text-inverse"
@@ -48,20 +56,29 @@ export default async function AdminDashboardLayout({
             </div>
             <Link
               href="/"
-              className="label-xs border border-inverse-fg/30 px-3 py-2.5 text-center transition-colors hover:bg-inverse-fg hover:text-inverse"
+              className="label-xs flex-1 border border-inverse-fg/30 px-3 py-2.5 text-center transition-colors hover:bg-inverse-fg hover:text-inverse"
             >
-              View site
+              {t("admin.viewSite")}
             </Link>
             {/* Signing out is not undoable, so it asks first. */}
             <ConfirmButton
               action={logout}
-              label="Sign out"
-              title="Sign out of admin?"
-              body="Your session will end immediately. You will need the admin password again to manage products, orders and settings."
-              confirmLabel="Sign out"
-              cancelLabel="Stay signed in"
+              label={t("admin.signOut")}
+              title={t("admin.signOutTitle")}
+              body={t("admin.signOutBody")}
+              confirmLabel={t("admin.signOut")}
+              cancelLabel={t("admin.staySignedIn")}
               subject={user.email}
-              className="label-xs w-full border border-inverse-fg/30 px-3 py-2.5 transition-colors hover:bg-inverse-fg hover:text-inverse"
+              className="label-xs flex-1 border border-inverse-fg/30 px-3 py-2.5 text-center transition-colors hover:bg-inverse-fg hover:text-inverse"
+            />
+          </div>
+          <div className="mt-3">
+            <LanguageSwitcher current={locale} variant="menu" />
+          </div>
+          <div className="mt-3 hidden justify-center lg:flex">
+            <ThemeToggle
+              variant="labelled"
+              className="border-inverse-fg/30 text-inverse-fg hover:bg-inverse-fg hover:text-inverse"
             />
           </div>
         </div>

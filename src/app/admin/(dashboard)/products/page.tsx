@@ -9,6 +9,7 @@ import {
   toggleFeatured,
   toggleProductActive,
 } from "@/app/admin/actions";
+import { getTranslator } from "@/lib/i18n";
 
 export const metadata = { title: "Products" };
 export const dynamic = "force-dynamic";
@@ -22,7 +23,7 @@ export default async function AdminProductsPage({
   const query = sp.q?.trim() ?? "";
   const category = sp.category ?? "";
 
-  const [settings, categories, products] = await Promise.all([
+  const [settings, categories, products, { t }] = await Promise.all([
     getSettings(),
     getCategories(),
     db.product.findMany({
@@ -33,17 +34,20 @@ export default async function AdminProductsPage({
       include: { variants: { orderBy: [{ size: "asc" }, { color: "asc" }] } },
       orderBy: { createdAt: "desc" },
     }),
+    getTranslator(),
   ]);
 
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="label-xs text-fg/65">Catalogue</p>
-          <h1 className="mt-2 text-3xl font-black uppercase md:text-4xl">Products</h1>
+          <p className="label-xs text-fg/65">{t("admin.catalogue")}</p>
+          <h1 className="mt-2 text-3xl font-black uppercase md:text-4xl">
+            {t("admin.products")}
+          </h1>
         </div>
         <Link href="/admin/products/new" className="btn btn-primary">
-          New product
+          {t("admin.newProduct")}
         </Link>
       </div>
 
@@ -51,12 +55,18 @@ export default async function AdminProductsPage({
         <input
           name="q"
           defaultValue={query}
-          placeholder="Search products"
+          placeholder={t("admin.searchProducts")}
+          aria-label={t("admin.searchProducts")}
           className="field w-full max-w-xs"
         />
         {category ? <input type="hidden" name="category" value={category} /> : null}
-        <select name="category" defaultValue={category} className="field w-auto">
-          <option value="">All categories</option>
+        <select
+          name="category"
+          defaultValue={category}
+          aria-label={t("shop.filterCategory")}
+          className="field w-auto"
+        >
+          <option value="">{t("shop.allCategories")}</option>
           {categories.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -64,7 +74,7 @@ export default async function AdminProductsPage({
           ))}
         </select>
         <button type="submit" className="btn btn-outline">
-          Filter
+          {t("admin.filter")}
         </button>
       </form>
 
@@ -107,17 +117,18 @@ export default async function AdminProductsPage({
                       ) : null}
                       {!p.active ? (
                         <span className="label-xs rounded-full border border-line px-2 py-1 text-fg/65">
-                          Hidden
+                          {t("admin.hidden")}
                         </span>
                       ) : null}
                     </div>
                     <p className="mt-1 font-mono text-[11px] text-fg/65">/{p.slug}</p>
                     <p className="mt-1.5 text-xs text-fg/70">
                       {p.category} &middot; {formatMoney(p.priceCents, settings.currency)} &middot;{" "}
-                      {p.variants.length} variants &middot; {totalStock} in stock
+                      {p.variants.length} {t("admin.variants")} &middot; {totalStock}{" "}
+                      {t("admin.stock")}
                       {low.length > 0 ? (
                         <span className="ml-1 font-semibold text-fg">
-                          ({low.length} low)
+                          ({low.length} {t("admin.low")})
                         </span>
                       ) : null}
                     </p>
@@ -127,7 +138,7 @@ export default async function AdminProductsPage({
                     <form action={toggleProductActive}>
                       <input type="hidden" name="id" value={p.id} />
                       <button type="submit" className="label-xs border border-line px-3 py-2 hover:border-fg">
-                        {p.active ? "Hide" : "Show"}
+                        {p.active ? t("admin.hide") : t("admin.show")}
                       </button>
                     </form>
                     <form action={toggleFeatured}>
@@ -140,14 +151,14 @@ export default async function AdminProductsPage({
                             : "border-line hover:border-fg"
                         }`}
                       >
-                        Featured
+                        {t("admin.featured")}
                       </button>
                     </form>
                     <Link
                       href={`/admin/products/${p.id}`}
                       className="label-xs border border-line px-3 py-2 hover:border-fg"
                     >
-                      Edit
+                      {t("common.edit")}
                     </Link>
                     <form action={deleteProduct}>
                       <input type="hidden" name="id" value={p.id} />
@@ -155,7 +166,7 @@ export default async function AdminProductsPage({
                         type="submit"
                         className="label-xs border border-line px-3 py-2 hover:border-fg hover:text-fg"
                       >
-                        Delete
+                        {t("common.delete")}
                       </button>
                     </form>
                   </div>
@@ -163,7 +174,7 @@ export default async function AdminProductsPage({
 
                 {/* Inline stock editor */}
                 <div className="border-t border-line bg-surface/60 px-4 py-3">
-                  <p className="label-xs mb-2.5 text-fg/70">Stock by variant</p>
+                  <p className="label-xs mb-2.5 text-fg/70">{t("admin.stockByVariant")}</p>
                   <div className="flex flex-wrap gap-2">
                     {p.variants.map((v) => (
                       <form
@@ -191,7 +202,7 @@ export default async function AdminProductsPage({
                           type="submit"
                           className="text-[10px] uppercase tracking-wider text-fg/70 hover:text-fg"
                         >
-                          Set
+                          {t("admin.set")}
                         </button>
                       </form>
                     ))}

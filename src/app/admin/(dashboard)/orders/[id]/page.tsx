@@ -77,20 +77,20 @@ export default async function AdminOrderPage({
             </ul>
 
             <dl className="mt-5 space-y-2 border-t border-line pt-4 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-fg/70">Subtotal</dt>
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="shrink-0 text-fg/70">Subtotal</dt>
                 <dd>{formatMoney(order.subtotalCents, order.currency)}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-fg/70">Shipping</dt>
+              <div className="flex items-baseline justify-between gap-4">
+                <dt className="shrink-0 text-fg/70">Shipping</dt>
                 <dd>
                   {order.shippingCents === 0
                     ? "Free"
                     : formatMoney(order.shippingCents, order.currency)}
                 </dd>
               </div>
-              <div className="flex justify-between border-t border-line pt-2 text-base font-bold">
-                <dt>Total</dt>
+              <div className="flex items-baseline justify-between gap-4 border-t border-line pt-2 text-base font-bold">
+                <dt className="shrink-0">Total</dt>
                 <dd>{formatMoney(order.totalCents, order.currency)}</dd>
               </div>
             </dl>

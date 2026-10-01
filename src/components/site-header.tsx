@@ -8,6 +8,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { readableOn } from "@/lib/brand";
 import { customerSignOut } from "@/app/account/actions";
 import { Avatar } from "@/components/account/avatar";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import type { Locale, Translate, TranslationKey } from "@/lib/i18n";
 import {
   BagIcon,
   ChevronDownIcon,
@@ -19,12 +21,16 @@ import {
   UserIcon,
 } from "@/components/icons";
 
+/**
+ * Nav labels are translation keys, not strings, so the header follows the
+ * locale without the caller having to pass text down.
+ */
 const NAV = [
-  { href: "/shop", label: "Shop" },
-  { href: "/shop?sort=newest", label: "New in" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
-];
+  { href: "/shop", key: "nav.shop" },
+  { href: "/shop?sort=newest", label: "New in", key: "shop.sortNewest" },
+  { href: "/about", key: "nav.about" },
+  { href: "/contact", key: "nav.contact" },
+] as const satisfies readonly { href: string; key: TranslationKey; label?: string }[];
 
 /** First name only, so the header never gets pushed around by a long name. */
 function shortName(name: string) {
@@ -34,10 +40,14 @@ function shortName(name: string) {
 export function SiteHeader({
   settings,
   customer,
+  t,
+  locale,
 }: {
   settings: Settings;
   /** Present only when the visitor is signed in. */
   customer: { name: string; email: string; avatarUrl: string | null } | null;
+  t: Translate;
+  locale: Locale;
 }) {
   const { count } = useCart();
   const [open, setOpen] = useState(false);
@@ -74,7 +84,7 @@ export function SiteHeader({
                   href={item.href}
                   className="label-xs text-fg/70 transition-colors hover:text-fg"
                 >
-                  {item.label}
+                  {"label" in item ? item.label : t(item.key)}
                 </Link>
               ))}
             </nav>
@@ -84,7 +94,7 @@ export function SiteHeader({
               onClick={() => setOpen((v) => !v)}
               aria-expanded={open}
               aria-controls="mobile-menu"
-              aria-label={open ? "Close menu" : "Open menu"}
+              aria-label={open ? t("nav.closeMenu") : t("nav.openMenu")}
               className="-ml-2 flex h-10 w-10 items-center justify-center transition-colors hover:text-fg md:hidden"
             >
               {open ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
@@ -117,7 +127,7 @@ export function SiteHeader({
                   onClick={() => setAccountOpen((v) => !v)}
                   aria-expanded={accountOpen}
                   aria-haspopup="menu"
-                  aria-label={`Account menu for ${customer.name}`}
+                  aria-label={`${t("nav.account")} — ${customer.name}`}
                   className="flex items-center gap-2 rounded-full border border-transparent py-2 pl-2 pr-2.5 transition-colors hover:border-line sm:pr-3"
                 >
                   <Avatar
@@ -160,7 +170,7 @@ export function SiteHeader({
                           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-surface-2"
                         >
                           <UserIcon className="h-4 w-4 shrink-0 text-haze" />
-                          My account
+                          {t("nav.account")}
                         </Link>
                         <Link
                           href="/account/orders"
@@ -169,7 +179,7 @@ export function SiteHeader({
                           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-surface-2"
                         >
                           <PackageIcon className="h-4 w-4 shrink-0 text-haze" />
-                          My orders
+                          {t("nav.orders")}
                         </Link>
                         <Link
                           href="/account/details"
@@ -178,7 +188,7 @@ export function SiteHeader({
                           className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-surface-2"
                         >
                           <SettingsIcon className="h-4 w-4 shrink-0 text-haze" />
-                          Details
+                          {t("nav.details")}
                         </Link>
                       </div>
 
@@ -189,7 +199,7 @@ export function SiteHeader({
                           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors hover:bg-surface-2"
                         >
                           <LogOutIcon className="h-4 w-4 shrink-0 text-haze" />
-                          Sign out
+                          {t("nav.signOut")}
                         </button>
                       </form>
                     </div>
@@ -200,20 +210,28 @@ export function SiteHeader({
               /* ── Signed out ── */
               <Link
                 href="/account/sign-in"
-                aria-label="Sign in to your account"
+                aria-label={t("nav.signIn")}
                 className="flex items-center gap-2 rounded-full px-3 py-2 text-fg/70 transition-colors hover:text-fg"
               >
                 <UserIcon className="h-5 w-5" />
-                <span className="label-xs hidden sm:inline">Sign in</span>
+                <span className="label-xs hidden sm:inline">{t("nav.signIn")}</span>
               </Link>
             )}
 
             <ThemeToggle />
 
+            <LanguageSwitcher current={locale} />
+
             {/* Bag: icon carries the meaning, the number is a badge on it. */}
             <Link
               href="/cart"
-              aria-label={count > 0 ? `Bag, ${count} ${count === 1 ? "item" : "items"}` : "Bag, empty"}
+              aria-label={
+                count === 0
+                  ? t("nav.cartEmpty")
+                  : count === 1
+                    ? t("nav.cartOneItem")
+                    : t("nav.cartItems", { count })
+              }
               className="group relative flex h-10 w-10 items-center justify-center rounded-full border border-transparent transition-colors hover:border-line md:h-11 md:w-11"
             >
               <BagIcon className="h-5 w-5 transition-transform group-hover:scale-105" />
@@ -241,7 +259,7 @@ export function SiteHeader({
                 onClick={() => setOpen(false)}
                 className="label-xs block border-b border-line px-5 py-4"
               >
-                {item.label}
+                {"label" in item ? item.label : t(item.key)}
               </Link>
             ))}
             <Link
@@ -250,7 +268,7 @@ export function SiteHeader({
               className="label-xs flex items-center gap-2.5 border-b border-line px-5 py-4"
             >
               <UserIcon className="h-4 w-4" />
-              {customer ? "My account" : "Sign in / Create account"}
+              {customer ? t("nav.account") : t("nav.signIn")}
             </Link>
           </nav>
         ) : null}

@@ -405,6 +405,32 @@
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ── Narrow-viewport safety net ───────────────────────────────────────
+   A single long unbroken token — an email address, an order number, a
+   pasted URL, a long product name — is enough to push the whole document
+   wider than the screen. On a phone the result is a page that scrolls
+   sideways and looks like content has vanished off the right-hand edge.
+
+   `clip` rather than `hidden`: it stops the overflow without turning the
+   body into a scroll container, which would break the sticky header and
+   the `position: sticky` table headers inside it. */
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* For the rare places that must keep a long token on one line and scroll
+   it rather than wrap it. */
+.scroll-x-auto { overflow-x: auto; }
+
+/* Break a long token anywhere, for prose that may contain a URL or email. */
+.break-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 /* Photo media.
    NOTE: this deliberately does NOT desaturate. The site's *interface* is
    strictly black & white (see the colour tokens above), but the photographs the

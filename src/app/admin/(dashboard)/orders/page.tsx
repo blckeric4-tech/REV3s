@@ -3,6 +3,7 @@ import { db } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { formatMoney } from "@/lib/money";
 import { updateOrderStatus } from "@/app/admin/actions";
+import { getTranslator } from "@/lib/i18n";
 
 export const metadata = { title: "Orders" };
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export default async function AdminOrdersPage({
   const sp = await searchParams;
   const status = sp.status ?? "";
 
-  const [settings, orders, counts] = await Promise.all([
+  const [settings, orders, counts, { t }] = await Promise.all([
     getSettings(),
     db.order.findMany({
       where: status && STATUSES.includes(status) ? { status } : {},
@@ -36,6 +37,7 @@ export default async function AdminOrdersPage({
       take: 100,
     }),
     db.order.groupBy({ by: ["status"], _count: { status: true } }),
+    getTranslator(),
   ]);
 
   const countBy = new Map(counts.map((c) => [c.status, c._count.status]));
@@ -43,8 +45,8 @@ export default async function AdminOrdersPage({
   return (
     <div className="space-y-8">
       <div>
-        <p className="label-xs text-fg/65">Fulfilment</p>
-        <h1 className="mt-2 text-3xl font-black uppercase md:text-4xl">Orders</h1>
+        <p className="label-xs text-fg/65">{t("admin.fulfilment")}</p>
+        <h1 className="mt-2 text-3xl font-black uppercase md:text-4xl">{t("admin.orders")}</h1>
       </div>
 
       <div className="no-scrollbar flex gap-2 overflow-x-auto">
@@ -64,7 +66,7 @@ export default async function AdminOrdersPage({
 
       {orders.length === 0 ? (
         <p className="rounded-[var(--radius-card)] border border-dashed border-line py-16 text-center text-sm text-fg/65">
-          No orders here yet.
+          {t("admin.noOrdersHere")}
         </p>
       ) : (
         <ul className="space-y-3">
@@ -85,8 +87,8 @@ export default async function AdminOrdersPage({
                       {o.status}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm font-semibold">{o.fullName}</p>
-                  <p className="text-xs text-fg/65">{o.email}</p>
+                  <p className="mt-2 text-sm font-semibold break-anywhere">{o.fullName}</p>
+                  <p className="break-anywhere text-xs text-fg/65">{o.email}</p>
                   <p className="mt-1.5 text-xs text-fg/70">
                     {o.items.length} item{o.items.length === 1 ? "" : "s"} &middot;{" "}
                     {new Date(o.createdAt).toLocaleDateString("en-GB", {
@@ -101,13 +103,16 @@ export default async function AdminOrdersPage({
                   <p className="text-lg font-bold">
                     {formatMoney(o.totalCents, o.currency)}
                   </p>
-                  <form action={updateOrderStatus} className="flex items-center gap-2">
+                  <form
+                    action={updateOrderStatus}
+                    className="flex w-full items-center gap-2 sm:w-auto"
+                  >
                     <input type="hidden" name="id" value={o.id} />
                     <select
                       name="status"
                       defaultValue={o.status}
                       className="field w-auto py-1.5 text-xs"
-                      aria-label={`Status for ${o.orderNumber}`}
+                      aria-label={`${t("admin.status")} — ${o.orderNumber}`}
                     >
                       {STATUSES.map((s) => (
                         <option key={s} value={s}>
@@ -117,9 +122,9 @@ export default async function AdminOrdersPage({
                     </select>
                     <button
                       type="submit"
-                      className="label-xs border border-line px-3 py-2 hover:border-fg"
+                      className="label-xs shrink-0 border border-line px-3 py-2 hover:border-fg"
                     >
-                      Save
+                      {t("admin.save")}
                     </button>
                   </form>
                 </div>

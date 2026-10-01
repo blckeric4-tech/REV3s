@@ -3,12 +3,13 @@ import { db } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { formatMoney } from "@/lib/money";
 import { stripeConfigured } from "@/lib/stripe";
+import { getTranslator } from "@/lib/i18n";
 
 export const metadata = { title: "Overview" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  const settings = await getSettings();
+  const [settings, { t }] = await Promise.all([getSettings(), getTranslator()]);
 
   const [
     orderCount,
@@ -42,35 +43,49 @@ export default async function AdminDashboard() {
 
   const stats = [
     {
-      label: "Revenue",
+      label: t("admin.revenue"),
       value: formatMoney(revenue._sum.totalCents ?? 0, settings.currency),
-      hint: "Paid orders",
+      hint: t("admin.paidOrders"),
     },
-    { label: "Orders", value: String(orderCount), hint: `${paidCount} paid` },
-    { label: "Products", value: String(productTotal), hint: "In the catalogue" },
-    { label: "Subscribers", value: String(subscriberCount), hint: "Newsletter" },
+    {
+      label: t("admin.orders"),
+      value: String(orderCount),
+      hint: `${paidCount} ${t("admin.paid")}`,
+    },
+    {
+      label: t("admin.products"),
+      value: String(productTotal),
+      hint: t("admin.inCatalogue"),
+    },
+    {
+      label: t("admin.subscribers"),
+      value: String(subscriberCount),
+      hint: t("admin.newsletter"),
+    },
   ];
 
   return (
     <div className="space-y-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="label-xs text-fg/65">Dashboard</p>
-          <h1 className="mt-2 text-3xl font-black uppercase md:text-4xl">Overview</h1>
+          <p className="label-xs text-fg/65">{t("admin.dashboard")}</p>
+          <h1 className="mt-2 text-3xl font-black uppercase md:text-4xl">
+            {t("admin.overview")}
+          </h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link href="/admin/products/new" className="btn btn-primary">
-            New product
+            {t("admin.newProduct")}
           </Link>
           <Link href="/admin/settings" className="btn btn-outline">
-            Edit site
+            {t("admin.editSite")}
           </Link>
         </div>
       </div>
 
       {!stripeConfigured() ? (
         <div className="rounded-[var(--radius-card)] border border-fg/40 bg-fg/10 p-5">
-          <p className="text-sm font-semibold">Payments are not connected yet</p>
+          <p className="text-sm font-semibold">{t("admin.paymentsNotConnected")}</p>
           <p className="mt-1.5 text-sm text-fg/70">
             Add <code className="font-mono text-xs">STRIPE_SECRET_KEY</code> to your{" "}
             <code className="font-mono text-xs">.env</code> file to enable checkout. Copy{" "}
@@ -93,15 +108,15 @@ export default async function AdminDashboard() {
         {/* Recent orders */}
         <section>
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold uppercase">Recent orders</h2>
+            <h2 className="text-lg font-bold uppercase">{t("admin.recentOrders")}</h2>
             <Link href="/admin/orders" className="label-xs text-fg/70 hover:text-fg">
-              View all
+              {t("admin.viewAll")}
             </Link>
           </div>
 
           {recentOrders.length === 0 ? (
             <p className="mt-4 rounded-[var(--radius-card)] border border-dashed border-line py-10 text-center text-sm text-fg/65">
-              No orders yet.
+              {t("admin.noOrders")}
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-line border-y border-line">
@@ -114,7 +129,7 @@ export default async function AdminDashboard() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{o.fullName}</p>
                       <p className="mt-0.5 font-mono text-[11px] text-fg/65">
-                        {o.orderNumber} &middot; {o.items.length} item
+                        {o.orderNumber} &middot; {o.items.length} {t("admin.item")}
                         {o.items.length === 1 ? "" : "s"}
                       </p>
                     </div>
@@ -134,15 +149,15 @@ export default async function AdminDashboard() {
         {/* Low stock */}
         <section>
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold uppercase">Low stock</h2>
+            <h2 className="text-lg font-bold uppercase">{t("admin.lowStock")}</h2>
             <Link href="/admin/products" className="label-xs text-fg/70 hover:text-fg">
-              Restock
+              {t("admin.restock")}
             </Link>
           </div>
 
           {lowStock.length === 0 ? (
             <p className="mt-4 rounded-[var(--radius-card)] border border-dashed border-line py-10 text-center text-sm text-fg/65">
-              Everything is well stocked.
+              {t("admin.allStocked")}
             </p>
           ) : (
             <ul className="mt-4 divide-y divide-line border-y border-line">
@@ -165,7 +180,7 @@ export default async function AdminDashboard() {
                       v.stock === 0 ? "text-fg" : "text-fg"
                     }`}
                   >
-                    {v.stock} left
+                    {v.stock} {t("admin.left")}
                   </p>
                 </li>
               ))}

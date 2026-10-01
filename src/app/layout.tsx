@@ -7,16 +7,19 @@ import { SiteFooter } from "@/components/site-footer";
 import { CartProvider } from "@/components/cart-provider";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { themeInitScript } from "@/components/theme-toggle";
+import { getLocale, getTranslator } from "@/lib/i18n";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const s = await getSettings();
+  const [s, locale] = await Promise.all([getSettings(), getLocale()]);
+  const titleDefault = `${s.siteName} — ${s.tagline}`;
   return {
-    title: { default: `${s.siteName} — ${s.tagline}`, template: `%s | ${s.siteName}` },
+    title: { default: titleDefault, template: `%s | ${s.siteName}` },
     description: s.heroBody,
     openGraph: {
-      title: `${s.siteName} — ${s.tagline}`,
+      title: titleDefault,
       description: s.heroBody,
       type: "website",
+      locale,
     },
   };
 }
@@ -26,9 +29,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const settings = await getSettings();
-  // Drives the header's Sign in / account menu. Null when signed out.
-  const customer = await getCustomer();
+  const [settings, customer, { locale, t }] = await Promise.all([
+    getSettings(),
+    getCustomer(),
+    getTranslator(),
+  ]);
 
   // Admin colour edits flow through the whole site via these CSS variables.
   // Only `ink` and `bone` are driven by the admin; the semantic tokens in
@@ -39,7 +44,7 @@ export default async function RootLayout({
   } as React.CSSProperties;
 
   return (
-    <html lang="en" style={brandVars} data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang={locale} style={brandVars} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
@@ -52,6 +57,8 @@ export default async function RootLayout({
                 ? { name: customer.name, email: customer.email, avatarUrl: customer.avatarUrl }
                 : null
             }
+            t={t}
+            locale={locale}
           />
           <main className="flex-1">{children}</main>
           <SiteFooter settings={settings} />

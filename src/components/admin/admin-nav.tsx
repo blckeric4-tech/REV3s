@@ -2,17 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { Translate, TranslationKey } from "@/lib/i18n";
 
 const LINKS = [
-  { href: "/admin", label: "Overview", key: null },
-  { href: "/admin/products", label: "Products", key: "products" as const },
-  { href: "/admin/orders", label: "Orders", key: "orders" as const },
-  { href: "/admin/settings", label: "Site editor", key: null },
-];
+  { href: "/admin", labelKey: "admin.overview", badge: null },
+  { href: "/admin/products", labelKey: "admin.products", badge: "products" },
+  { href: "/admin/orders", labelKey: "admin.orders", badge: "orders" },
+  { href: "/admin/settings", labelKey: "admin.siteEditor", badge: null },
+] as const satisfies readonly {
+  href: string;
+  labelKey: TranslationKey;
+  badge: "products" | "orders" | null;
+}[];
 
 type Counts = { products: number; lowStock: number; orders: number };
 
-export function AdminNav({ counts }: { counts: Counts }) {
+export function AdminNav({ counts, t }: { counts: Counts; t: Translate }) {
   const pathname = usePathname();
 
   return (
@@ -23,9 +28,9 @@ export function AdminNav({ counts }: { counts: Counts }) {
             ? pathname === "/admin"
             : pathname.startsWith(link.href);
         const badge =
-          link.key === "products"
+          link.badge === "products"
             ? counts.products
-            : link.key === "orders"
+            : link.badge === "orders"
               ? counts.orders
               : null;
 
@@ -39,7 +44,7 @@ export function AdminNav({ counts }: { counts: Counts }) {
                 : "text-inverse-fg/75 hover:bg-inverse-fg/10 hover:text-inverse-fg"
             }`}
           >
-            <span>{link.label}</span>
+            <span>{t(link.labelKey)}</span>
             {badge ? (
               <span
                 className={`rounded-full px-1.5 py-0.5 text-[10px] ${
@@ -55,7 +60,10 @@ export function AdminNav({ counts }: { counts: Counts }) {
 
       {counts.lowStock > 0 ? (
         <p className="px-4 pt-4 text-[10px] leading-relaxed text-inverse-fg/70">
-          {counts.lowStock} variant{counts.lowStock === 1 ? "" : "s"} low on stock
+          {t(
+            counts.lowStock === 1 ? "admin.lowStockWarning" : "admin.lowStockWarningPlural",
+            { count: counts.lowStock }
+          )}
         </p>
       ) : null}
     </nav>

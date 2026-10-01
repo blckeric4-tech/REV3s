@@ -2,10 +2,11 @@
 
 import { useActionState } from "react";
 import { changePassword, type ActionState } from "@/app/admin/actions";
+import type { Translate } from "@/lib/i18n";
 
 const initial: ActionState = { ok: false, message: "" };
 
-export function PasswordForm() {
+export function PasswordForm({ t }: { t: Translate }) {
   const [state, action, pending] = useActionState(changePassword, initial);
 
   return (
@@ -15,7 +16,8 @@ export function PasswordForm() {
         type="password"
         required
         autoComplete="current-password"
-        placeholder="Current password"
+        placeholder={t("admin.currentPassword")}
+        aria-label={t("admin.currentPassword")}
         className="field"
       />
       <input
@@ -23,7 +25,8 @@ export function PasswordForm() {
         type="password"
         required
         autoComplete="new-password"
-        placeholder="New password (10+ chars, a letter and a number)"
+        placeholder={t("admin.newPassword")}
+        aria-label={t("admin.newPassword")}
         className="field"
       />
       <input
@@ -31,7 +34,8 @@ export function PasswordForm() {
         type="password"
         required
         autoComplete="new-password"
-        placeholder="Confirm new password"
+        placeholder={t("admin.confirmPassword")}
+        aria-label={t("admin.confirmPassword")}
         className="field"
       />
 

@@ -3,6 +3,7 @@ import { parseList } from "@/lib/money";
 import { SettingsForm } from "@/components/admin/settings-form";
 import { PasswordForm } from "@/components/admin/password-form";
 import { db } from "@/lib/prisma";
+import { getTranslator } from "@/lib/i18n";
 
 export const metadata = { title: "Site editor" };
 export const dynamic = "force-dynamic";
@@ -12,10 +13,11 @@ export default async function AdminSettingsPage({
 }: {
   searchParams: Promise<{ saved?: string; warn?: string }>;
 }) {
-  const [sp, settings, subscribers] = await Promise.all([
+  const [sp, settings, subscribers, { t }] = await Promise.all([
     searchParams,
     getSettings(),
     db.newsletterSubscriber.findMany({ orderBy: { createdAt: "desc" }, take: 200 }),
+    getTranslator(),
   ]);
 
   const categories = parseList(settings.categories);
@@ -25,8 +27,10 @@ export default async function AdminSettingsPage({
   return (
     <div className="space-y-8">
       <div>
-        <p className="label-xs text-fg/65">Everything in one place</p>
-        <h1 className="mt-2 text-3xl font-black uppercase md:text-4xl">Site editor</h1>
+        <p className="label-xs text-fg/65">{t("admin.everythingInOnePlace")}</p>
+        <h1 className="mt-2 text-3xl font-black uppercase md:text-4xl">
+          {t("admin.siteEditor")}
+        </h1>
         <p className="mt-3 max-w-2xl text-sm text-fg/70">
           Every headline, colour, image and rule on this page is editable and applies to the
           whole site the moment you save.
@@ -77,9 +81,9 @@ export default async function AdminSettingsPage({
       </section>
 
       <section className="card p-5">
-        <h2 className="label-xs text-fg/65">Change admin password</h2>
+        <h2 className="label-xs text-fg/65">{t("admin.changePassword")}</h2>
         <div className="mt-4 max-w-md">
-          <PasswordForm />
+          <PasswordForm t={t} />
         </div>
       </section>
     </div>
