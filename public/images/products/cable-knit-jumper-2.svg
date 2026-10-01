@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+  <rect width="800" height="1000" fill="#EFEAE1"/>
+  <rect x="40" y="40" width="720" height="920" fill="#1B1D21" opacity="0.92"/>
+  <circle cx="390" cy="190" r="92" fill="#D7FF3E" opacity="0.2"/>
+  <g stroke="#0A0A0B" stroke-opacity="0.18" stroke-width="2" fill="none" stroke-linecap="square">
+    <path d="M40 40h28M40 40v28M760 40h-28M760 40v28M40 960h28M40 960v-28M760 960h-28M760 960v-28"/>
+  </g>
+  <path d="M275 245 L190 300 L135 470 L235 500 L268 400 L268 770 L532 770 L532 400 L565 500 L665 470 L610 300 L525 245 L400 300 Z" fill="#2A2D33" stroke="#0A0A0B" stroke-width="4" stroke-linejoin="round"/><path d="M300 232 q100 78 200 0" fill="none" stroke="#0A0A0B" stroke-width="4"/><g stroke="#0A0A0B" stroke-opacity="0.3" stroke-width="5" fill="none"><path d="M300 350 q50 50 100 0 q50 -50 100 0"/><path d="M300 460 q50 50 100 0 q50 -50 100 0"/><path d="M300 570 q50 50 100 0 q50 -50 100 0"/><path d="M300 680 q50 50 100 0 q50 -50 100 0"/></g>
+  <text x="70" y="906" font-family="ui-monospace, monospace" font-size="26" letter-spacing="6" fill="#0A0A0B" fill-opacity="0.45">RAV3S</text>
+</svg>

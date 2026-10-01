@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+  <rect width="800" height="1000" fill="#EFEAE1"/>
+  <rect x="40" y="40" width="720" height="920" fill="#F5F1E8" opacity="0.92"/>
+  <circle cx="510" cy="190" r="92" fill="#FF5A36" opacity="0.2"/>
+  <g stroke="#0A0A0B" stroke-opacity="0.18" stroke-width="2" fill="none" stroke-linecap="square">
+    <path d="M40 40h28M40 40v28M760 40h-28M760 40v28M40 960h28M40 960v-28M760 960h-28M760 960v-28"/>
+  </g>
+  <path d="M280 250 L185 305 L120 500 L240 530 L272 415 L272 790 L528 790 L528 415 L560 530 L680 500 L615 305 L520 250 L400 330 Z" fill="#EFEAE1" stroke="#0A0A0B" stroke-width="4" stroke-linejoin="round"/><path d="M305 240 q95 90 190 0" fill="none" stroke="#0A0A0B" stroke-width="4"/><path d="M355 340 L400 520 L445 340" fill="none" stroke="#0A0A0B" stroke-width="4"/><rect x="300" y="600" width="200" height="120" rx="16" fill="#0A0A0B" fill-opacity="0.12" stroke="#0A0A0B" stroke-width="3"/>
+  <text x="70" y="906" font-family="ui-monospace, monospace" font-size="26" letter-spacing="6" fill="#0A0A0B" fill-opacity="0.45">RAV3S</text>
+</svg>

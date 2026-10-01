@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <rect width="1200" height="900" fill="#EFEAE1"/>
+  <rect x="60" y="60" width="1080" height="780" fill="none" stroke="#0A0A0B" stroke-opacity="0.14" stroke-width="2"/>
+  <g transform="translate(600 430) scale(1.5) translate(-400 -500)" opacity="0.95">
+    <path d="M275 245 L190 300 L135 470 L235 500 L268 400 L268 770 L532 770 L532 400 L565 500 L665 470 L610 300 L525 245 L400 300 Z" fill="#D8D2C6" stroke="#0A0A0B" stroke-width="4" stroke-linejoin="round"/><path d="M300 232 q100 78 200 0" fill="none" stroke="#0A0A0B" stroke-width="4"/><g stroke="#0A0A0B" stroke-opacity="0.3" stroke-width="5" fill="none"><path d="M300 350 q50 50 100 0 q50 -50 100 0"/><path d="M300 460 q50 50 100 0 q50 -50 100 0"/><path d="M300 570 q50 50 100 0 q50 -50 100 0"/><path d="M300 680 q50 50 100 0 q50 -50 100 0"/></g>
+  </g>
+  <rect x="60" y="60" width="1080" height="120" fill="#D7FF3E"/>
+  <text x="100" y="140" font-family="ui-monospace, monospace" font-size="40" letter-spacing="10" fill="#0A0A0B">SMALL RUNS / BIG FABRIC</text>
+  <g fill="none" stroke="#0A0A0B" stroke-opacity="0.3" stroke-width="3">
+    <circle cx="180" cy="700" r="52"/><circle cx="1020" cy="700" r="52"/>
+  </g>
+  <text x="180" y="712" text-anchor="middle" font-family="ui-monospace, monospace" font-size="30" fill="#0A0A0B" fill-opacity="0.55">01</text>
+  <text x="1020" y="712" text-anchor="middle" font-family="ui-monospace, monospace" font-size="30" fill="#0A0A0B" fill-opacity="0.55">02</text>
+</svg>

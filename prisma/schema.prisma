@@ -1,0 +1,238 @@
+// RAV3S — data model
+// TiDB Cloud Starter (MySQL wire protocol), reached over TCP on port 4000.
+// MySQL does not support Prisma enums, so status-like fields are strings.
+//
+// Text sizing: Prisma maps a bare `String` to VARCHAR(191) on MySQL. Several
+// fields below hold free-form prose or comma/JSON lists that routinely exceed
+// 191 characters, so they are explicitly @db.Text. Getting this wrong fails at
+// write time with a data-too-long error rather than at deploy time, so do not
+// strip the @db.Text annotations.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  /// 320 not 191: RFC 5321 allows addresses up to 254 characters, and the
+  /// default VARCHAR(191) would reject a long (if legal) one at signup.
+  email        String   @unique @db.VarChar(320)
+  name         String   @db.VarChar(255)
+  passwordHash String   @db.VarChar(255)
+  role         String   @default("owner")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique @db.VarChar(255)
+  name        String   @db.VarChar(255)
+  tagline     String?  @db.VarChar(255)
+  /// Long-form copy written by the shop owner. VARCHAR(191) would reject it.
+  description String   @db.Text
+  priceCents  Int
+  compareCents Int?
+  category    String   @db.VarChar(128)
+  badge       String?  @db.VarChar(128)
+  image       String   @db.VarChar(512)
+  /// Comma-separated paths, mirrored locally at save time. Can exceed 191.
+  images      String?   @db.Text
+  onBodyImages String?  @db.Text
+  featured    Boolean  @default(false)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  variants Variant[]
+  items    OrderItem[]
+
+  @@index([category])
+  @@index([featured])
+}
+
+model Variant {
+  id        String   @id @default(cuid())
+  productId String
+  size      String   @db.VarChar(64)
+  color     String   @db.VarChar(128)
+  colorHex  String   @db.VarChar(32)
+  stock     Int      @default(0)
+  sku       String   @unique @db.VarChar(128)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  items     OrderItem[]
+
+  @@unique([productId, size, color])
+  @@index([productId])
+}
+
+model Customer {
+  id           String   @id @default(cuid())
+  email        String   @unique @db.VarChar(320)
+  name         String   @db.VarChar(255)
+  passwordHash String   @db.VarChar(255)
+  /// Optional profile photo, stored under public/uploads. Null means "use the
+  /// initials monogram instead".
+  avatarUrl    String?  @db.VarChar(512)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders Order[]
+
+  @@index([createdAt])
+}
+
+model Order {
+  id                    String   @id @default(cuid())
+  orderNumber           String   @unique @db.VarChar(64)
+  email                 String   @db.VarChar(320)
+  fullName              String   @db.VarChar(255)
+  phone                 String?  @db.VarChar(64)
+  customerId            String?
+  addressLine1          String   @db.VarChar(255)
+  addressLine2          String?  @db.VarChar(255)
+  city                  String   @db.VarChar(128)
+  postcode              String   @db.VarChar(32)
+  country               String   @db.VarChar(128)
+  subtotalCents         Int
+  shippingCents         Int
+  totalCents            Int
+  currency              String   @db.VarChar(3) @default("usd")
+  status                String   @db.VarChar(32) @default("PENDING")
+  paymentMethod         String   @db.VarChar(32) @default("stripe")
+  paymentRef            String?  @db.VarChar(255)
+  /// Indexed but nullable: MySQL allows many NULLs in a unique column, which is
+  /// what lets a guest order exist before Stripe assigns a session id.
+  stripeSessionId       String?  @unique @db.VarChar(255)
+  stripePaymentIntentId String?  @db.VarChar(255)
+  /// Order notes from the customer or admin. Free-form, can be long.
+  notes                 String?  @db.Text
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  items OrderItem[]
+
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([customerId])
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  productId     String?
+  variantId     String?
+  name          String   @db.VarChar(255)
+  slug          String   @db.VarChar(255)
+  size          String   @db.VarChar(64)
+  color         String   @db.VarChar(128)
+  image         String   @db.VarChar(512)
+  unitPriceCents Int
+  quantity      Int
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant       Variant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+// Single row (id = "main"). Every editable part of the site lives here so the
+// admin dashboard can control the whole storefront from one place.
+model SiteSettings {
+  id        String   @id @default("main")
+  updatedAt DateTime @updatedAt
+
+  // brand
+  siteName        String  @db.VarChar(255) @default("RAV3S")
+  tagline         String  @db.VarChar(255) @default("Engineered essentials.")
+  logoText        String  @db.VarChar(255) @default("RAV3S")
+  logoMark        String  @db.VarChar(64) @default("R")
+
+  // colours (hex) — monochrome black & white by default
+  colorInk   String  @db.VarChar(32) @default("#000000")
+  colorBone  String  @db.VarChar(32) @default("#FFFFFF")
+  colorVolt  String  @db.VarChar(32) @default("#000000")
+  colorClay  String  @db.VarChar(32) @default("#000000")
+  colorHaze  String  @db.VarChar(32) @default("#737373")
+
+  // announcement bar
+  announcementOn    Boolean @default(true)
+  announcementText  String  @db.VarChar(500) @default("Free delivery on orders over 50,000 FRW")
+
+  // international contact
+  whatsappNumber    String  @db.VarChar(64) @default("250788000000")
+  whatsappMessage   String  @db.Text @default("Hi RAV3S! I would like to order clothes.")
+  whatsappOn        Boolean @default(true)
+  phoneNumber       String  @db.VarChar(64) @default("+250 788 000 000")
+  mapAddress        String  @db.VarChar(255) @default("Kigali, Rwanda")
+  mapEmbedUrl       String  @db.Text @default("")
+  tiktokUrl         String  @db.Text @default("https://tiktok.com/@rav3s")
+  facebookUrl       String  @db.Text @default("")
+  instagramUrl      String  @db.Text @default("https://instagram.com/rav3s")
+
+  // media
+  heroVideo     String  @db.Text @default("")
+  galleryImages String  @db.Text @default("[]")
+  videoPoster   String  @db.Text @default("/images/hero.svg")
+  /// How the hero picture fills its frame: "contain" shows the whole photo,
+  /// "cover" fills the screen and crops the edges.
+  heroFit       String  @db.VarChar(16) @default("contain")
+
+  // hero
+  heroKicker    String  @db.Text @default("Drop 04 — Autumn/Winter")
+  heroTitle     String  @db.Text @default("BUILT FOR THE LONG WAY ROUND")
+  heroBody      String  @db.Text @default("Heavyweight tees and knitwear cut from fabric that gets better with every wash.")
+  heroCtaText   String  @db.Text @default("ORDER ONLINE")
+  heroCtaHref   String  @db.Text @default("/shop")
+  heroSecondaryText String @db.Text @default("New arrivals")
+  heroSecondaryHref String @db.Text @default("/shop?sort=newest")
+  heroImage     String  @db.Text @default("/images/hero.svg")
+  heroHeight    String  @db.VarChar(32) @default("tall")
+
+  // story / about
+  storyKicker String  @db.Text @default("The label")
+  storyTitle  String  @db.Text @default("We make fewer things, better.")
+  storyBody   String  @db.Text @default("RAV3S started in a single room with one screen printer and a stubborn idea: everyday clothes should be built to outlast the trend that sold them to you.")
+  storyImage  String  @db.Text @default("/images/story.svg")
+
+  // value props
+  valueProps String  @db.Text @default("[\"240gsm heavyweight cotton\",\"Small-batch production\",\"Free delivery over 50,000 FRW\",\"Pay with MTN, Airtel or card\"]")
+
+  // shop page
+  shopTitle       String  @db.Text @default("The Full Range")
+  shopDescription String  @db.Text @default("Every piece we make, in every colour and size.")
+
+  // categories
+  categories String  @db.Text @default("[\"T-Shirts\",\"Jumpers\",\"Hoodies\",\"Outerwear\",\"Accessories\"]")
+
+  // newsletter
+  newsletterTitle    String  @db.Text @default("Get first access to every drop")
+  newsletterBody     String  @db.Text @default("Sign up for early links, restocks and nothing else.")
+  newsletterEnabled  Boolean @default(true)
+
+  // footer
+  footerAbout    String  @db.Text @default("RAV3S is an independent label making heavyweight essentials in small runs.")
+  footerInstagram String @db.Text @default("https://instagram.com/rav3s")
+  footerTiktok    String @db.Text @default("https://tiktok.com/@rav3s")
+  footerEmail     String @db.VarChar(320) @default("hello@rav3s.com")
+  footerAddress   String @db.VarChar(255) @default("Kigali, Rwanda")
+
+  // shop / commerce rules
+  currency         String  @db.VarChar(3) @default("rwf")
+  shippingFlatCents Int   @default(300000)
+  freeShippingOverCents Int @default(5000000)
+  lowStockThreshold Int   @default(5)
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique @db.VarChar(320)
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,68 @@
+# Render Blueprint — RAV3S
+#
+# Deploys the Next.js app. The database is NOT managed here: it is an external
+# TiDB Cloud Starter cluster reached over the DATABASE_URL env var.
+#
+# Secrets are marked `sync: false`, which means Render prompts for them in the
+# dashboard and never stores them in this file. Do not hardcode values here —
+# this file is committed to git.
+
+services:
+  - type: web
+    name: rav3s
+    runtime: node
+    plan: free
+    region: frankfurt
+    branch: main
+    # `prisma db push` runs on every deploy so the TiDB schema always matches
+    # schema.prisma. It is idempotent, so re-running is safe.
+    # The seed is deliberately NOT here — it would overwrite edited products.
+    buildCommand: npm ci && npx prisma generate && npx prisma db push && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+
+      - key: DATABASE_URL
+        sync: false
+
+      - key: SESSION_SECRET
+        sync: false
+
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+      # Mobile money. Optional — blank values hide these methods at checkout.
+      - key: PAYPACK_CLIENT_ID
+        sync: false
+      - key: PAYPACK_CLIENT_SECRET
+        sync: false
+      - key: PAYPACK_MODE
+        value: sandbox
+      - key: PAYPACK_WEBHOOK_SECRET
+        sync: false
+
+      - key: FLW_CLIENT_ID
+        sync: false
+      - key: FLW_CLIENT_SECRET
+        sync: false
+      - key: FLW_ENCRYPTION_KEY
+        sync: false
+      - key: FLW_ENV
+        value: sandbox
+      - key: FLW_WEBHOOK_SECRET
+        sync: false

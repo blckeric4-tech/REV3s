@@ -1,0 +1,414 @@
+@import "tailwindcss";
+
+@theme {
+  /* RAV3S palette — STRICT BLACK & WHITE, theme-aware.
+     Semantic tokens flip automatically with the `dark` class on <html>.
+     `inverse` is pinned: deliberately inverted panels stay black/white
+     in both themes. Colours remain overridable from the admin dashboard. */
+  --color-ink: #000000;
+  --color-bone: #ffffff;
+
+  /* surfaces & text */
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-2: #f5f5f5;
+  --color-fg: #000000;
+  --color-line: #d4d4d4;
+  --color-haze: #595959;
+
+  /* pinned inverted blocks */
+  --color-inverse: #000000;
+  --color-inverse-fg: #ffffff;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Arial Black", "Helvetica Neue", Impact, ui-sans-serif,
+    system-ui, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, monospace;
+
+  --radius-card: 0.75rem;
+
+  --animate-marquee: marquee 28s linear infinite;
+  --animate-fade-up: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-pulse-dot: pulse-dot 2s ease-in-out infinite;
+  --animate-rail: rail var(--rail-duration, 40s) linear infinite;
+  --animate-drift: drift 18s ease-in-out infinite alternate;
+}
+
+/* Dark theme. Overrides the semantic tokens; `inverse` stays put. */
+@layer base {
+  .dark {
+    --color-bg: #0a0a0a;
+    --color-surface: #141414;
+    --color-surface-2: #1e1e1e;
+    --color-fg: #f5f5f5;
+    --color-line: #3d3d3d;
+    --color-haze: #b8b8b8;
+  }
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* Horizontal rail that scrolls itself. Content is rendered twice and the
+   track is translated by -50%, so the loop is seamless. */
+@keyframes rail {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes drift {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(0, -2.5%, 0) scale(1.08); }
+}
+
+/* Scroll-reveal: opt in with data-reveal, JS adds .is-visible */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+[data-reveal].is-visible { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  [data-reveal] { opacity: 1; transform: none; }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.04em;
+  }
+
+  ::selection {
+    background-color: var(--color-fg);
+    color: var(--color-bg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-fg);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .container-rav3s {
+    width: 100%;
+    margin-inline: auto;
+    max-width: 90rem;
+    padding-inline: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .container-rav3s { padding-inline: 2.5rem; }
+  }
+
+  .label-xs {
+    font-size: 0.6875rem;
+    line-height: 1;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 0.9rem 1.75rem;
+    border-radius: 9999px;
+    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease,
+      border-color 0.2s ease;
+    cursor: pointer;
+  }
+
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* Solid dark button */
+  .btn-primary { background-color: var(--color-fg); color: var(--color-bg); }
+  .btn-primary:hover:not(:disabled) {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    box-shadow: inset 0 0 0 1.5px var(--color-fg);
+  }
+
+  /* Solid button on an inverted panel */
+  .btn-invert { background-color: var(--color-inverse-fg); color: var(--color-inverse); }
+  .btn-invert:hover:not(:disabled) {
+    background-color: var(--color-inverse);
+    color: var(--color-inverse-fg);
+  }
+
+  /* Legacy aliases kept so older markup still renders correctly */
+  .btn-volt { background-color: var(--color-fg); color: var(--color-bg); }
+  .btn-volt:hover:not(:disabled) { background-color: var(--color-surface); color: var(--color-fg); }
+  .btn-clay { background-color: var(--color-fg); color: var(--color-bg); }
+  .btn-clay:hover:not(:disabled) { background-color: var(--color-surface); color: var(--color-fg); }
+
+  .btn-outline { border: 1px solid currentColor; color: inherit; background: transparent; }
+  .btn-outline:hover:not(:disabled) { background-color: var(--color-fg); color: var(--color-bg); border-color: var(--color-fg); }
+
+  /* Buttons placed on an inverted (always black) panel */
+  .btn-inverse-outline {
+    border: 1px solid color-mix(in srgb, var(--color-inverse-fg) 40%, transparent);
+    color: var(--color-inverse-fg);
+    background: transparent;
+  }
+  .btn-inverse-outline:hover:not(:disabled) {
+    background-color: var(--color-inverse-fg);
+    color: var(--color-inverse);
+  }
+
+  .field {
+    width: 100%;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+    color: var(--color-fg);
+  }
+
+  .field::placeholder { color: var(--color-fg); opacity: 0.55; }
+
+  .field:focus {
+    outline: 2px solid var(--color-fg);
+    outline-offset: -1px;
+    border-color: var(--color-fg);
+  }
+
+  .card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+  }
+
+  .hairline { border-top: 1px solid var(--color-line); }
+
+  /* ── Landing page pieces ───────────────────────────── */
+
+  /* Panel with a pinned black background and white text */
+  .section-ink {
+    background-color: var(--color-inverse);
+    color: var(--color-inverse-fg);
+  }
+
+  /* Big outlined heading.
+     The fill is transparent, so the stroke MUST be an explicit colour. Using
+     `currentColor` here would resolve to the transparent fill and the word
+     would disappear completely — which is exactly what "white on white" looked
+     like. Use `.outline-type` on the page background and `.outline-type-inverse`
+     on a pinned inverted panel. */
+  .outline-type {
+    color: transparent;
+    -webkit-text-stroke: 2px var(--color-fg);
+    paint-order: stroke fill;
+  }
+
+  .outline-type-inverse {
+    color: transparent;
+    -webkit-text-stroke: 2px var(--color-inverse-fg);
+    paint-order: stroke fill;
+  }
+
+  /* Media frame */
+  .frame {
+    border: 1px solid var(--color-line);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: var(--color-surface-2);
+  }
+
+  /* ── Order status pills ───────────────────────────────────────────────
+     The interface is monochrome, so status is encoded by *fill level* and
+     outline weight rather than by hue. Reading order is
+     pending (least certain) → paid → shipped → delivered (most certain),
+     with cancelled/refunded muted because they are terminal and not "good". */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.6rem;
+    border-radius: 9999px;
+    border: 1px solid var(--color-line);
+    color: var(--color-haze);
+  }
+
+  /* Awaiting payment — dashed, because it is not confirmed yet. */
+  .status-pill[data-status="PENDING"] {
+    border-style: dashed;
+    color: var(--color-fg);
+  }
+
+  /* Paid — solid, we have the money. */
+  .status-pill[data-status="PAID"] {
+    background-color: var(--color-fg);
+    border-color: var(--color-fg);
+    color: var(--color-bg);
+  }
+
+  /* Shipped — solid outline with an inner dot. */
+  .status-pill[data-status="SHIPPED"] {
+    border-color: var(--color-fg);
+    color: var(--color-fg);
+  }
+  .status-pill[data-status="SHIPPED"]::before {
+    content: "";
+    width: 0.35rem;
+    height: 0.35rem;
+    border-radius: 9999px;
+    background-color: var(--color-fg);
+  }
+
+  /* Delivered — strongest statement short of "paid". */
+  .status-pill[data-status="DELIVERED"] {
+    background-color: var(--color-fg);
+    border-color: var(--color-fg);
+    color: var(--color-bg);
+  }
+  .status-pill[data-status="DELIVERED"]::before {
+    content: "\2713";
+    font-size: 0.7em;
+    letter-spacing: 0;
+  }
+
+  /* Terminal-but-not-good. */
+  .status-pill[data-status="CANCELLED"],
+  .status-pill[data-status="REFUNDED"] {
+    color: var(--color-haze);
+    background-color: var(--color-surface-2);
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+  }
+
+  /* ── Account dashboard tiles ──────────────────────────────────────── */
+  .stat-tile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background-color: var(--color-surface);
+  }
+
+  .stat-tile > dt {
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-haze);
+  }
+  .stat-tile > dd {
+    font-family: var(--font-display);
+    font-size: clamp(1.35rem, 3vw, 1.75rem);
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  /* ── Dialog ───────────────────────────────────────────────────────── */
+  @keyframes dialog-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes backdrop-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .dialog-panel { animation: dialog-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .dialog-backdrop { animation: backdrop-in 0.18s ease-out both; }
+
+  /* ── How images are fitted ───────────────────────────────────────────
+     The rule for the whole site: an uploaded picture is always shown WHOLE.
+     `.media-fit` (object-fit: contain) therefore never crops, and
+     `.media-mat` paints the backdrop that shows through when the photo is a
+     different shape from its frame, so the empty space reads as an
+     intentional mat instead of a gap.
+     These are plain CSS rather than Tailwind utilities on purpose — the
+     hero used to build `object-${heroFit}` in a template literal, which
+     Tailwind's scanner cannot see, so the class was never emitted and the
+     hero silently fell back to a stretched image. */
+  .media-fit { object-fit: contain; }
+  .media-fill { object-fit: cover; }
+  .media-mat { background-color: var(--color-surface-2); }
+  .media-mat-inverse { background-color: var(--color-inverse); }
+
+  /* The self-scrolling rail viewport: edges fade out */
+  .rail-viewport {
+    position: relative;
+    overflow: hidden;
+  }
+  .rail-viewport::before,
+  .rail-viewport::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 5rem;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .rail-viewport::before { left: 0; background: linear-gradient(90deg, var(--color-bg), transparent); }
+  .rail-viewport::after { right: 0; background: linear-gradient(270deg, var(--color-bg), transparent); }
+
+  /* Pauses the auto-scroll when hovered or when focused inside */
+  .rail-track:hover,
+  .rail-track:focus-within { animation-play-state: paused; }
+}
+
+/* Hide scrollbar on horizontal product rails */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Photo media.
+   NOTE: this deliberately does NOT desaturate. The site's *interface* is
+   strictly black & white (see the colour tokens above), but the photographs the
+   admin uploads must stay in their real colours — a clothing store that renders
+   every garment in grey cannot show the customer what they are buying, and it
+   contradicts the colour swatches printed next to each product. */
+.mono-media { filter: contrast(1.02) saturate(1.02); }
