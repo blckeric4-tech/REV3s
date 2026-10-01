@@ -9,7 +9,8 @@ import { readableOn } from "@/lib/brand";
 import { customerSignOut } from "@/app/account/actions";
 import { Avatar } from "@/components/account/avatar";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import type { Locale, Translate, TranslationKey } from "@/lib/i18n";
+import type { Locale, TranslationKey } from "@/lib/i18n/translate";
+import { makeTranslator } from "@/lib/i18n/translate";
 import {
   BagIcon,
   ChevronDownIcon,
@@ -40,15 +41,19 @@ function shortName(name: string) {
 export function SiteHeader({
   settings,
   customer,
-  t,
   locale,
 }: {
   settings: Settings;
   /** Present only when the visitor is signed in. */
   customer: { name: string; email: string; avatarUrl: string | null } | null;
-  t: Translate;
+  /**
+   * Only the locale string crosses the server -> client boundary. `t` is built
+   * here from it, because a function prop cannot be serialised into a Client
+   * Component and would throw at request time.
+   */
   locale: Locale;
 }) {
+  const t = makeTranslator(locale);
   const { count } = useCart();
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);

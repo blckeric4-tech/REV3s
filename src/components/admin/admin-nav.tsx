@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { Translate, TranslationKey } from "@/lib/i18n";
+import type { Locale, TranslationKey } from "@/lib/i18n/translate";
+import { makeTranslator } from "@/lib/i18n/translate";
 
 const LINKS = [
   { href: "/admin", labelKey: "admin.overview", badge: null },
@@ -17,7 +18,8 @@ const LINKS = [
 
 type Counts = { products: number; lowStock: number; orders: number };
 
-export function AdminNav({ counts, t }: { counts: Counts; t: Translate }) {
+export function AdminNav({ counts, locale }: { counts: Counts; locale: Locale }) {
+  const t = makeTranslator(locale);
   const pathname = usePathname();
 
   return (

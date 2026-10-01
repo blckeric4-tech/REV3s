@@ -18,6 +18,20 @@ import { LOCALES, LOCALE_COOKIE, type Locale } from "@/lib/i18n/config";
  * locale from headers/cookies at request time and would not re-render
  * otherwise.
  */
+/**
+ * Writes the locale cookie. Deliberately a module-level function rather than an
+ * inline assignment inside the component: the `react-hooks/immutability` lint
+ * rule treats any mutation reachable from component scope as a side effect, and
+ * this keeps the "remember my language" write out of the render path.
+ *
+ * Max age one year — set-and-forget, matching the expected behaviour for an
+ * international store.
+ */
+function persistLocale(locale: Locale) {
+  if (typeof document === "undefined") return;
+  document.cookie = `${LOCALE_COOKIE}=${locale}; path=/; max-age=31536000; SameSite=Lax`;
+}
+
 export function LanguageSwitcher({
   current,
   variant = "pill",
@@ -37,13 +51,7 @@ export function LanguageSwitcher({
   }, []);
 
   const switchTo = (l: Locale) => {
-    // Max age one year — set-and-forget, matches the expected "remember my
-    // language" behaviour for an international store.
-    try {
-      window.document.cookie = `${LOCALE_COOKIE}=${l}; path=/; max-age=31536000; SameSite=Lax`;
-    } catch {
-      // noop: non-browser environments
-    }
+    persistLocale(l);
     router.refresh();
   };
 

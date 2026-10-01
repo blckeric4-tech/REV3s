@@ -29,7 +29,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [settings, customer, { locale, t }] = await Promise.all([
+  const [settings, customer, { locale }] = await Promise.all([
     getSettings(),
     getCustomer(),
     getTranslator(),
@@ -57,7 +57,6 @@ export default async function RootLayout({
                 ? { name: customer.name, email: customer.email, avatarUrl: customer.avatarUrl }
                 : null
             }
-            t={t}
             locale={locale}
           />
           <main className="flex-1">{children}</main>

@@ -13,7 +13,7 @@ export default async function AdminSettingsPage({
 }: {
   searchParams: Promise<{ saved?: string; warn?: string }>;
 }) {
-  const [sp, settings, subscribers, { t }] = await Promise.all([
+  const [sp, settings, subscribers, { t, locale }] = await Promise.all([
     searchParams,
     getSettings(),
     db.newsletterSubscriber.findMany({ orderBy: { createdAt: "desc" }, take: 200 }),
@@ -83,7 +83,7 @@ export default async function AdminSettingsPage({
       <section className="card p-5">
         <h2 className="label-xs text-fg/65">{t("admin.changePassword")}</h2>
         <div className="mt-4 max-w-md">
-          <PasswordForm t={t} />
+          <PasswordForm locale={locale} />
         </div>
       </section>
     </div>

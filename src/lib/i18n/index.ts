@@ -1,18 +1,15 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
-import { en, type Dictionary, type TranslationKey } from "./en";
-import { fr } from "./fr";
 import {
+  LOCALE_TAGS,
   DEFAULT_LOCALE,
   LOCALE_COOKIE,
-  LOCALE_TAGS,
   isLocale,
   matchLocale,
   type Locale,
 } from "./config";
-
-const DICTIONARIES: Record<Locale, Dictionary> = { en, fr };
+import { makeTranslator, type Translate } from "./translate";
 
 /**
  * The current locale.
@@ -35,52 +32,22 @@ export const getLocale = cache(async (): Promise<Locale> => {
   return matchLocale(requestHeaders.get("accept-language")) ?? DEFAULT_LOCALE;
 });
 
-export function getDictionary(locale: Locale): Dictionary {
-  return DICTIONARIES[locale] ?? DICTIONARIES[DEFAULT_LOCALE];
-}
-
-/** Replaces `{name}` placeholders. Unknown placeholders are left in place. */
-function interpolate(template: string, values?: Record<string, string | number>) {
-  if (!values) return template;
-  return template.replace(/\{(\w+)\}/g, (match, key: string) =>
-    key in values ? String(values[key]) : match
-  );
-}
-
-export type Translate = (
-  key: TranslationKey,
-  values?: Record<string, string | number>
-) => string;
-
 /**
- * A `t` bound to one locale.
+ * Locale + translator for Server Components.
  *
- *     const t = await getTranslator();
- *     t("cart.empty")
- *     t("product.lowStock", { count: 3 })
- *
- * A missing key returns the key itself rather than throwing: a missing
- * translation should be obvious in the page, not take the shop down.
+ * NOTE: the returned `t` must never be passed as a prop into a `"use client"`
+ * component — functions are not serialisable across the RSC boundary and doing
+ * so throws at request time. Hand the client component `locale` instead and let
+ * it call `makeTranslator(locale)` from `./translate`.
  */
 export async function getTranslator(): Promise<{ locale: Locale; t: Translate; tag: string }> {
   const locale = await getLocale();
-  const dictionary = getDictionary(locale);
-
   return {
     locale,
     tag: LOCALE_TAGS[locale],
-    t: (key, values) => interpolate(dictionary[key] ?? key, values),
+    t: makeTranslator(locale),
   };
 }
 
-/**
- * Status values are stored uppercase in the database (`PAID`, `SHIPPED`, ...).
- * `status.PAID` is the key, so this maps one to the other. Anything
- * unrecognised falls back to the raw value rather than showing a key.
- */
-export function statusKey(status: string): TranslationKey | null {
-  const key = `status.${status.toUpperCase()}` as TranslationKey;
-  return key in en ? key : null;
-}
-
-export type { Locale, TranslationKey, Dictionary };
+export { getDictionary, makeTranslator, statusKey } from "./translate";
+export type { Locale, Translate, TranslationKey, Dictionary } from "./translate";

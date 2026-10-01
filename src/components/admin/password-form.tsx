@@ -2,11 +2,13 @@
 
 import { useActionState } from "react";
 import { changePassword, type ActionState } from "@/app/admin/actions";
-import type { Translate } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/translate";
+import { makeTranslator } from "@/lib/i18n/translate";
 
 const initial: ActionState = { ok: false, message: "" };
 
-export function PasswordForm({ t }: { t: Translate }) {
+export function PasswordForm({ locale }: { locale: Locale }) {
+  const t = makeTranslator(locale);
   const [state, action, pending] = useActionState(changePassword, initial);
 
   return (

@@ -37,7 +37,7 @@ export default async function AdminDashboardLayout({
 
         <AdminNav
           counts={{ products: productCount, lowStock, orders: pending }}
-          t={t}
+          locale={locale}
         />
 
         <div className="border-t border-inverse-fg/20 p-4 lg:mt-auto lg:p-5">
