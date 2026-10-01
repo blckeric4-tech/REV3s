@@ -110,8 +110,9 @@ build + manual HTTP checks against the dev server.
    - **A `"use server"` file may only export async functions.** Exporting a plain object
      (e.g. `initialAuthState`) from `actions.ts` fails the build. Those live in
      `src/app/account/state.ts`.
-4. **Git is not available and this is not a Git repository.** No undo, no history. Be
-   careful with bulk edits and always verify after large changes.
+4. **Git is now installed and the repo is initialised** (branch `main`, one
+   commit). It was previously unavailable, which is why there was no history.
+   There is still **no `origin` remote** — see `DEPLOY.md` section 2.
 5. **Tailwind v4.** Never build class names dynamically. `object-${heroFit}` produces
    *no CSS at all* because the scanner only sees static literals. Write whole literal
    class names and choose between them with a ternary.
