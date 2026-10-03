@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { db } from "@/lib/prisma";
@@ -11,7 +12,10 @@ import {
 } from "@/app/admin/actions";
 import { getTranslator } from "@/lib/i18n";
 
-export const metadata = { title: "Products" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t("admin.metaProducts") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function AdminProductsPage({
@@ -23,7 +27,7 @@ export default async function AdminProductsPage({
   const query = sp.q?.trim() ?? "";
   const category = sp.category ?? "";
 
-  const [settings, categories, products, { t }] = await Promise.all([
+  const [settings, categories, products, { t, tag }] = await Promise.all([
     getSettings(),
     getCategories(),
     db.product.findMany({
@@ -123,7 +127,7 @@ export default async function AdminProductsPage({
                     </div>
                     <p className="mt-1 font-mono text-[11px] text-fg/65">/{p.slug}</p>
                     <p className="mt-1.5 text-xs text-fg/70">
-                      {p.category} &middot; {formatMoney(p.priceCents, settings.currency)} &middot;{" "}
+                      {p.category} &middot; {formatMoney(p.priceCents, settings.currency, tag)} &middot;{" "}
                       {p.variants.length} {t("admin.variants")} &middot; {totalStock}{" "}
                       {t("admin.stock")}
                       {low.length > 0 ? (

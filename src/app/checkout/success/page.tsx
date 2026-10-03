@@ -1,9 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
 import { formatMoney } from "@/lib/money";
 import { ClearCartOnSuccess } from "@/components/clear-cart";
+import { getTranslator } from "@/lib/i18n";
 
-export const metadata = { title: "Order confirmed" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t("checkout.successMeta") };
+}
 
 export default async function SuccessPage({
   searchParams,
@@ -11,6 +16,7 @@ export default async function SuccessPage({
   searchParams: Promise<{ session_id?: string }>;
 }) {
   const { session_id } = await searchParams;
+  const { t, tag } = await getTranslator();
 
   const order = session_id
     ? await db.order.findFirst({
@@ -29,23 +35,22 @@ export default async function SuccessPage({
         ✓
       </div>
 
-      <h1 className="mt-8 text-4xl font-black uppercase md:text-5xl">Order confirmed</h1>
+      <h1 className="mt-8 text-4xl font-black uppercase md:text-5xl">{t("checkout.successTitle")}</h1>
       <p className="mx-auto mt-4 max-w-md text-sm text-fg/65">
-        Thanks for your order. We have sent a confirmation to your email and we will
-        email you again the moment it ships.
+        {t("checkout.successBody")}
       </p>
 
       {order ? (
         <div className="card mt-10 w-full max-w-lg p-6 text-left">
           <div className="flex items-center justify-between border-b border-line pb-4">
             <div>
-              <p className="label-xs text-fg/65">Order</p>
+              <p className="label-xs text-fg/65">{t("checkout.order")}</p>
               <p className="mt-1 font-mono text-sm">{order.orderNumber}</p>
             </div>
             <div className="text-right">
-              <p className="label-xs text-fg/65">Total</p>
+              <p className="label-xs text-fg/65">{t("cart.total")}</p>
               <p className="mt-1 text-sm font-semibold">
-                {formatMoney(order.totalCents, order.currency)}
+                {formatMoney(order.totalCents, order.currency, tag)}
               </p>
             </div>
           </div>
@@ -60,14 +65,14 @@ export default async function SuccessPage({
                   </span>
                 </span>
                 <span className="shrink-0 font-semibold">
-                  {formatMoney(item.unitPriceCents * item.quantity, order.currency)}
+                  {formatMoney(item.unitPriceCents * item.quantity, order.currency, tag)}
                 </span>
               </li>
             ))}
           </ul>
 
           <div className="mt-5 border-t border-line pt-4 text-sm">
-            <p className="label-xs text-fg/65">Shipping to</p>
+            <p className="label-xs text-fg/65">{t("checkout.shippingTo")}</p>
             <p className="mt-1.5 text-fg/75">{order.fullName}</p>
             <p className="text-fg/75">{order.addressLine1}</p>
             <p className="text-fg/75">
@@ -76,15 +81,12 @@ export default async function SuccessPage({
           </div>
         </div>
       ) : (
-        <p className="mt-8 max-w-md text-sm text-fg/70">
-          We are still confirming your payment. You will get an email with your order
-          details within a minute &mdash; no need to place it again.
-        </p>
+        <p className="mt-8 max-w-md text-sm text-fg/70">{t("checkout.confirming")}</p>
       )}
 
       <div className="mt-10 flex flex-wrap justify-center gap-3">
-        <Link href="/shop" className="btn btn-primary">Keep shopping</Link>
-        <Link href="/" className="btn btn-outline">Back home</Link>
+        <Link href="/shop" className="btn btn-primary">{t("checkout.keepShopping")}</Link>
+        <Link href="/" className="btn btn-outline">{t("checkout.backHome")}</Link>
       </div>
     </div>
   );

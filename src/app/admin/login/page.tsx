@@ -1,10 +1,16 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 import { getSessionUser } from "@/lib/auth";
+import { getTranslator } from "@/lib/i18n";
 import { LoginForm } from "@/components/admin/login-form";
 
-export const metadata = { title: "Sign in" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t("adminLogin.signIn") };
+}
 
 export default async function AdminLoginPage() {
+  const [{ t, locale }] = await Promise.all([getTranslator()]);
   const user = await getSessionUser();
   if (user) redirect("/admin");
 
@@ -15,15 +21,14 @@ export default async function AdminLoginPage() {
           RAV3S
           <span className="ml-1 inline-block h-2 w-2 rounded-full align-top bg-inverse-fg" />
         </p>
-        <p className="label-xs mt-2 text-inverse-fg/70">Admin sign in</p>
+        <p className="label-xs mt-2 text-inverse-fg/70">{t("adminLogin.signIn")}</p>
 
         <div className="mt-8 rounded-[var(--radius-card)] border border-inverse/15 bg-surface/[0.04] p-6">
-          <LoginForm />
+          <LoginForm locale={locale} />
         </div>
 
         <p className="mt-6 text-center text-[11px] leading-relaxed text-inverse-fg/70">
-          Sessions are signed and httpOnly. Change the default password in Settings
-          straight after your first login.
+          {t("adminLogin.note")}
         </p>
       </div>
     </div>

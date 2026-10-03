@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { getSettings } from "@/lib/settings";
+import { getLocalizedSettings } from "@/lib/settings";
 import { getCustomer } from "@/lib/customer-auth";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -8,9 +8,11 @@ import { CartProvider } from "@/components/cart-provider";
 import { WhatsAppButton } from "@/components/whatsapp-button";
 import { themeInitScript } from "@/components/theme-toggle";
 import { getLocale, getTranslator } from "@/lib/i18n";
+import { LOCALE_TAGS } from "@/lib/i18n/config";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [s, locale] = await Promise.all([getSettings(), getLocale()]);
+  const locale = await getLocale();
+  const s = await getLocalizedSettings(locale);
   const titleDefault = `${s.siteName} — ${s.tagline}`;
   return {
     title: { default: titleDefault, template: `%s | ${s.siteName}` },
@@ -19,7 +21,8 @@ export async function generateMetadata(): Promise<Metadata> {
       title: titleDefault,
       description: s.heroBody,
       type: "website",
-      locale,
+      // Open Graph wants the underscored form, `fr_FR`, not `fr-FR`.
+      locale: LOCALE_TAGS[locale].replace("-", "_"),
     },
   };
 }
@@ -29,11 +32,8 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [settings, customer, { locale }] = await Promise.all([
-    getSettings(),
-    getCustomer(),
-    getTranslator(),
-  ]);
+  const [customer, { locale, tag }] = await Promise.all([getCustomer(), getTranslator()]);
+  const settings = await getLocalizedSettings(locale);
 
   // Admin colour edits flow through the whole site via these CSS variables.
   // Only `ink` and `bone` are driven by the admin; the semantic tokens in
@@ -44,7 +44,7 @@ export default async function RootLayout({
   } as React.CSSProperties;
 
   return (
-    <html lang={locale} style={brandVars} data-scroll-behavior="smooth" suppressHydrationWarning>
+    <html lang={tag} style={brandVars} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
@@ -65,6 +65,7 @@ export default async function RootLayout({
             number={settings.whatsappNumber}
             message={settings.whatsappMessage}
             enabled={settings.whatsappOn}
+            locale={locale}
           />
         </CartProvider>
       </body>

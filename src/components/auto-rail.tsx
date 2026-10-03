@@ -1,12 +1,14 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { makeTranslator, type Locale } from "@/lib/i18n/translate";
 
 type Props = {
   children: React.ReactNode;
   /** Seconds for one full left-to-right pass. */
   duration?: number;
   className?: string;
+  locale: Locale;
 };
 
 /**
@@ -17,7 +19,8 @@ type Props = {
  * focusing something inside) pauses it; a control lets the visitor stop and
  * step through it manually.
  */
-export function AutoRail({ children, duration = 45, className = "" }: Props) {
+export function AutoRail({ children, duration = 45, className = "", locale }: Props) {
+  const t = makeTranslator(locale);
   const trackRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
   const [atStart, setAtStart] = useState(true);
@@ -26,7 +29,7 @@ export function AutoRail({ children, duration = 45, className = "" }: Props) {
   const measure = useCallback(() => {
     const el = trackRef.current;
     if (!el) return;
-    // While animating, scrollLeft stays at 0 — measure via the transform instead.
+    // While animating, scrollLeft stays at 0 â€” measure via the transform instead.
     const half = el.scrollWidth / 2;
     const m = /translateX\((-?[\d.]+)px\)/.exec(getComputedStyle(el).transform);
     const offset = m ? Math.abs(parseFloat(m[1])) : el.scrollLeft;
@@ -108,7 +111,7 @@ export function AutoRail({ children, duration = 45, className = "" }: Props) {
           type="button"
           onClick={() => nudge(-1)}
           disabled={atStart && !paused}
-          aria-label="Scroll the rail backwards"
+          aria-label={t("home.railBack")}
           className="btn btn-outline h-10 px-4 disabled:opacity-60"
         >
           &larr;
@@ -116,16 +119,16 @@ export function AutoRail({ children, duration = 45, className = "" }: Props) {
         <button
           type="button"
           onClick={() => setPaused((p) => !p)}
-          aria-label={paused ? "Resume auto-scroll" : "Pause auto-scroll"}
+          aria-label={paused ? t("home.railResume") : t("home.railPauseAuto")}
           className="btn btn-primary h-10 px-4"
         >
-          {paused ? "Play" : "Pause"}
+          {paused ? t("home.railPlay") : t("home.railPause")}
         </button>
         <button
           type="button"
           onClick={() => nudge(1)}
           disabled={atEnd}
-          aria-label="Scroll the rail forwards"
+          aria-label={t("home.railForward")}
           className="btn btn-outline h-10 px-4 disabled:opacity-60"
         >
           &rarr;

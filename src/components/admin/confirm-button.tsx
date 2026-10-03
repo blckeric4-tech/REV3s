@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { makeTranslator, type Locale } from "@/lib/i18n/translate";
 
 /**
  * Confirmation modal for destructive, non-undoable actions (currently admin
@@ -8,14 +9,19 @@ import { useEffect, useId, useRef, useState } from "react";
  * stray click cannot end the session.
  *
  * Generic on purpose — reuse for deleting a product or cancelling an order.
+ *
+ * `title`, `body` and the labels are passed in already translated by the caller:
+ * this component is generic over *what* it confirms, so it cannot know which
+ * keys apply. Only the chrome it owns is translated here.
  */
 export function ConfirmDialog({
   action,
   trigger,
   title,
   body,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
+  confirmLabel,
+  cancelLabel,
+  locale,
   /** Subject shown in the warning row, e.g. "Signed in as admin@rav3s.com". */
   subject,
 }: {
@@ -27,11 +33,15 @@ export function ConfirmDialog({
   body: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  locale: Locale;
   subject?: string;
 }) {
+  const t = makeTranslator(locale);
+  const cancelText = cancelLabel ?? t("adminConfirm.cancel");
+  const confirmText = confirmLabel ?? t("adminConfirm.confirm");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<"adminConfirm.failed" | null>(null);
 
   const panelRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -97,13 +107,13 @@ export function ConfirmDialog({
   async function confirm() {
     if (busy) return;
     setBusy(true);
-    setError("");
+    setError(null);
     try {
       // On success the action redirects away, so this line is never reached.
       await action();
       setOpen(false);
     } catch {
-      setError("That did not work. Please try again.");
+      setError("adminConfirm.failed");
       setBusy(false);
     }
   }
@@ -123,7 +133,7 @@ export function ConfirmDialog({
         <div className="fixed inset-0 z-[100] flex items-end justify-center p-0 sm:items-center sm:p-5">
           <button
             type="button"
-            aria-label={cancelLabel}
+            aria-label={cancelText}
             tabIndex={-1}
             onClick={() => !busy && setOpen(false)}
             className="dialog-backdrop absolute inset-0 cursor-default bg-black/60 backdrop-blur-[3px]"
@@ -145,7 +155,7 @@ export function ConfirmDialog({
               >
                 !
               </span>
-              <p className="label-xs text-haze">Please confirm</p>
+              <p className="label-xs text-haze">{t("adminConfirm.pleaseConfirm")}</p>
             </div>
 
             <div className="px-6 py-6">
@@ -158,14 +168,14 @@ export function ConfirmDialog({
 
               {subject ? (
                 <div className="mt-5 flex items-baseline justify-between gap-4 border-y border-line py-3 text-xs">
-                  <span className="label-xs text-haze">Account</span>
+                  <span className="label-xs text-haze">{t("adminConfirm.account")}</span>
                   <span className="truncate font-semibold">{subject}</span>
                 </div>
               ) : null}
 
               {error ? (
                 <p className="mt-4 rounded-lg border border-line bg-surface-2 px-4 py-3 text-xs text-fg" role="alert">
-                  {error}
+                  {t(error)}
                 </p>
               ) : null}
             </div>
@@ -178,7 +188,7 @@ export function ConfirmDialog({
                 disabled={busy}
                 className="btn btn-ghost sm:min-w-32"
               >
-                {cancelLabel}
+                {cancelText}
               </button>
               <button
                 ref={confirmRef}
@@ -187,7 +197,7 @@ export function ConfirmDialog({
                 disabled={busy}
                 className="btn btn-primary sm:min-w-32"
               >
-                {busy ? "Working…" : confirmLabel}
+                {busy ? t("adminConfirm.working") : confirmText}
               </button>
             </div>
           </div>
@@ -207,6 +217,7 @@ export function ConfirmButton({
   cancelLabel,
   subject,
   className,
+  locale,
 }: {
   action: () => Promise<void>;
   label: string;
@@ -216,6 +227,7 @@ export function ConfirmButton({
   cancelLabel?: string;
   subject?: string;
   className?: string;
+  locale: Locale;
 }) {
   return (
     <ConfirmDialog
@@ -226,6 +238,7 @@ export function ConfirmButton({
       confirmLabel={confirmLabel}
       cancelLabel={cancelLabel}
       subject={subject}
+      locale={locale}
     />
   );
 }

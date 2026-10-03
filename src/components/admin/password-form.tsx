@@ -1,15 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { changePassword, type ActionState } from "@/app/admin/actions";
+import { changePassword } from "@/app/admin/actions";
+import { initialActionState } from "@/app/admin/action-state";
 import type { Locale } from "@/lib/i18n/translate";
 import { makeTranslator } from "@/lib/i18n/translate";
 
-const initial: ActionState = { ok: false, message: "" };
-
 export function PasswordForm({ locale }: { locale: Locale }) {
   const t = makeTranslator(locale);
-  const [state, action, pending] = useActionState(changePassword, initial);
+  const [state, action, pending] = useActionState(changePassword, initialActionState);
 
   return (
     <form action={action} className="space-y-3">
@@ -41,17 +40,14 @@ export function PasswordForm({ locale }: { locale: Locale }) {
         className="field"
       />
 
-      {state.message ? (
-        <p
-          className={`text-xs ${state.ok ? "text-fg" : "text-fg"}`}
-          role="status"
-        >
-          {state.message}
+      {state.messageKey ? (
+        <p className="text-xs text-fg" role="status">
+          {t(state.messageKey, state.values)}
         </p>
       ) : null}
 
       <button type="submit" disabled={pending} className="btn btn-primary">
-        {pending ? "Updating..." : "Update password"}
+        {pending ? t("admin.updatingPassword") : t("admin.updatePassword")}
       </button>
     </form>
   );

@@ -5,6 +5,7 @@ import { customerRemoveAvatar, customerUpdateAvatar } from "@/app/account/action
 import { initialAuthState, type AuthState } from "@/app/account/state";
 import { Avatar } from "@/components/account/avatar";
 import { TrashIcon, UploadIcon } from "@/components/icons";
+import { makeTranslator, type Locale } from "@/lib/i18n/translate";
 
 /**
  * Profile photo controls.
@@ -18,11 +19,13 @@ export function AvatarForm({
   name,
   currentAvatar,
   muted = false,
+  locale,
 }: {
   name: string;
   currentAvatar: string | null;
   /** Dim the initials preview — used when inviting the user to add a photo. */
   muted?: boolean;
+  locale: Locale;
 }) {
   const [upload, uploadAction, uploading] = useActionState<AuthState, FormData>(
     customerUpdateAvatar,
@@ -32,6 +35,7 @@ export function AvatarForm({
     customerRemoveAvatar,
     initialAuthState
   );
+  const t = makeTranslator(locale);
 
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState("");
@@ -45,16 +49,16 @@ export function AvatarForm({
   /* Once the server confirms the save, drop the local preview so the persisted
      avatar takes over. Without this the object URL would linger after a reload
      of only the client state. */
-  const lastUploadMessage = useRef("");
+  const lastUploadMessage = useRef<string | null>(null);
   useEffect(() => {
-    if (upload.ok && upload.message && upload.message !== lastUploadMessage.current) {
-      lastUploadMessage.current = upload.message;
+    if (upload.ok && upload.messageKey && upload.messageKey !== lastUploadMessage.current) {
+      lastUploadMessage.current = upload.messageKey;
       if (preview) URL.revokeObjectURL(preview);
       setPreview(null);
       setFileName("");
       if (fileRef.current) fileRef.current.value = "";
     }
-  }, [upload.ok, upload.message, preview]);
+  }, [upload.ok, upload.messageKey, preview]);
 
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -75,8 +79,10 @@ export function AvatarForm({
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  const message = upload.message || remove.message;
-  const isError = Boolean((upload.message && !upload.ok) || (remove.message && !remove.ok));
+  const messageKey = upload.messageKey ?? remove.messageKey;
+  const isError = Boolean(
+    (upload.messageKey && !upload.ok) || (remove.messageKey && !remove.ok)
+  );
   const hasPendingFile = preview !== null;
 
   return (
@@ -92,7 +98,7 @@ export function AvatarForm({
 
         <form action={uploadAction} className="min-w-0 flex-1">
           <p className="text-sm leading-relaxed text-fg/70">
-            Square images work best. Pick a file to preview it, then save.
+            {t("account.avatarPreviewBody")}
           </p>
 
           <input
@@ -113,19 +119,19 @@ export function AvatarForm({
             >
               <UploadIcon className="h-4 w-4 shrink-0" />
               {hasPendingFile
-                ? "Choose another"
+                ? t("account.avatarChooseAnother")
                 : currentAvatar
-                  ? "Replace photo"
-                  : "Upload photo"}
+                  ? t("account.avatarReplace")
+                  : t("account.avatarUpload")}
             </label>
 
             {hasPendingFile ? (
               <>
                 <button type="submit" disabled={busy} className="btn btn-primary">
-                  {uploading ? "Uploading…" : "Save photo"}
+                  {uploading ? t("account.avatarUploading") : t("account.avatarSave")}
                 </button>
                 <button type="button" onClick={discard} disabled={busy} className="btn btn-ghost">
-                  Discard
+                  {t("account.avatarDiscard")}
                 </button>
               </>
             ) : null}
@@ -136,9 +142,7 @@ export function AvatarForm({
           ) : null}
 
           {!hasPendingFile ? (
-            <p className="mt-2.5 text-xs text-fg/65">
-              JPEG, PNG, WebP or AVIF, up to 4 MB.
-            </p>
+            <p className="mt-2.5 text-xs text-fg/65">{t("account.avatarFormats")}</p>
           ) : null}
         </form>
       </div>
@@ -151,17 +155,17 @@ export function AvatarForm({
             className="inline-flex items-center gap-1.5 text-xs text-fg/65 underline underline-offset-4 transition-colors hover:text-fg"
           >
             <TrashIcon className="h-3.5 w-3.5 shrink-0" />
-            {removing ? "Removing…" : "Remove photo"}
+            {removing ? t("account.avatarRemoving") : t("account.avatarRemove")}
           </button>
         </form>
       ) : null}
 
-      {message ? (
+      {messageKey ? (
         <p
           className="mt-4 rounded-lg border border-line bg-surface-2 px-4 py-3 text-xs text-fg"
           role={isError ? "alert" : "status"}
         >
-          {message}
+          {t(messageKey, upload.values ?? remove.values)}
         </p>
       ) : null}
     </div>

@@ -11,6 +11,7 @@
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
+    "db:french": "tsx scripts/backfill-french.ts --",
     "db:studio": "prisma studio",
     "db:reset": "prisma db push --force-reset && prisma db seed",
     "db:migrate:tidb": "node scripts/migrate-sqlite-to-tidb.mjs",

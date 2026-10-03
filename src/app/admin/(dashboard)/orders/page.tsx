@@ -1,11 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { formatMoney } from "@/lib/money";
 import { updateOrderStatus } from "@/app/admin/actions";
-import { getTranslator } from "@/lib/i18n";
+import { getTranslator, statusKey } from "@/lib/i18n";
 
-export const metadata = { title: "Orders" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t("admin.metaOrders") };
+}
 export const dynamic = "force-dynamic";
 
 const STATUSES = ["PENDING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED"];
@@ -28,7 +32,7 @@ export default async function AdminOrdersPage({
   const sp = await searchParams;
   const status = sp.status ?? "";
 
-  const [settings, orders, counts, { t }] = await Promise.all([
+  const [settings, orders, counts, { t, tag }] = await Promise.all([
     getSettings(),
     db.order.findMany({
       where: status && STATUSES.includes(status) ? { status } : {},
@@ -51,7 +55,7 @@ export default async function AdminOrdersPage({
 
       <div className="no-scrollbar flex gap-2 overflow-x-auto">
         <StatusChip href="/admin/orders" active={!status}>
-          All
+          {t("admin.allStatuses")}
         </StatusChip>
         {STATUSES.map((s) => (
           <StatusChip
@@ -59,7 +63,8 @@ export default async function AdminOrdersPage({
             href={`/admin/orders?status=${s}`}
             active={status === s}
           >
-            {s} {countBy.get(s) ? `(${countBy.get(s)})` : ""}
+            {t(statusKey(s) ?? "status.PENDING")}{" "}
+            {countBy.get(s) ? `(${countBy.get(s)})` : ""}
           </StatusChip>
         ))}
       </div>
@@ -84,14 +89,17 @@ export default async function AdminOrdersPage({
                     <span
                       className={`label-xs rounded-full border px-2 py-1 ${STATUS_STYLE[o.status] ?? ""}`}
                     >
-                      {o.status}
+                      {t(statusKey(o.status) ?? "status.PENDING")}
                     </span>
                   </div>
                   <p className="mt-2 text-sm font-semibold break-anywhere">{o.fullName}</p>
                   <p className="break-anywhere text-xs text-fg/65">{o.email}</p>
                   <p className="mt-1.5 text-xs text-fg/70">
-                    {o.items.length} item{o.items.length === 1 ? "" : "s"} &middot;{" "}
-                    {new Date(o.createdAt).toLocaleDateString("en-GB", {
+                    {o.items.length === 1
+                      ? t("adminOrder.itemOne")
+                      : t("adminOrder.itemMany", { count: o.items.length })}{" "}
+                    &middot;{" "}
+                    {new Date(o.createdAt).toLocaleDateString(tag, {
                       day: "2-digit",
                       month: "short",
                       year: "numeric",
@@ -101,7 +109,7 @@ export default async function AdminOrdersPage({
 
                 <div className="flex flex-col items-end gap-2">
                   <p className="text-lg font-bold">
-                    {formatMoney(o.totalCents, o.currency)}
+                    {formatMoney(o.totalCents, o.currency, tag)}
                   </p>
                   <form
                     action={updateOrderStatus}
@@ -116,7 +124,7 @@ export default async function AdminOrdersPage({
                     >
                       {STATUSES.map((s) => (
                         <option key={s} value={s}>
-                          {s}
+                          {t(statusKey(s) ?? "status.PENDING")}
                         </option>
                       ))}
                     </select>
@@ -135,8 +143,10 @@ export default async function AdminOrdersPage({
       )}
 
       <p className="text-xs text-fg/65">
-        Revenue figures use {settings.currency.toUpperCase()}. Showing the 100 most recent
-        orders.
+        {t("admin.ordersFootnote", {
+          currency: settings.currency.toUpperCase(),
+          count: 100,
+        })}
       </p>
     </div>
   );

@@ -1,11 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
-import { getSettings, getCategories } from "@/lib/settings";
+import { getLocalizedSettings, getLocalizedCategories } from "@/lib/settings";
+import { localizeProduct } from "@/lib/localize";
 import { ProductCard } from "@/components/product-card";
 import { SearchBar } from "@/components/search-bar";
 import { SortSelect } from "@/components/sort-select";
+import { getTranslator } from "@/lib/i18n";
 
-export const metadata = { title: "Shop" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t("shop.meta") };
+}
 
 type SP = Promise<Record<string, string | string[] | undefined>>;
 
@@ -22,21 +28,33 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
   const sort = typeof sp.sort === "string" ? sp.sort : "newest";
   const query = typeof sp.q === "string" ? sp.q.trim() : "";
 
-  const [settings, categories] = await Promise.all([getSettings(), getCategories()]);
+  const [{ t, locale }] = await Promise.all([getTranslator()]);
+  const [settings, categories] = await Promise.all([
+    getLocalizedSettings(locale),
+    getLocalizedCategories(locale),
+  ]);
+
+  // Search the French columns too, otherwise a French shopper looking for
+  // "Hoodie" would not match a product translated as "Sweat à capuche".
+  const searchTerms = locale === "fr"
+    ? [
+        { name: { contains: query } },
+        { nameFr: { contains: query } },
+        { tagline: { contains: query } },
+        { taglineFr: { contains: query } },
+        { category: { contains: query } },
+      ]
+    : [
+        { name: { contains: query } },
+        { tagline: { contains: query } },
+        { category: { contains: query } },
+      ];
 
   const products = await db.product.findMany({
     where: {
       active: true,
       ...(category ? { category } : {}),
-      ...(query
-        ? {
-            OR: [
-              { name: { contains: query } },
-              { tagline: { contains: query } },
-              { category: { contains: query } },
-            ],
-          }
-        : {}),
+      ...(query ? { OR: searchTerms } : {}),
     },
     include: { variants: { select: { color: true, colorHex: true } } },
     orderBy: SORTS[sort as keyof typeof SORTS] ?? SORTS.newest,
@@ -55,68 +73,77 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
     return qs ? `/shop?${qs}` : "/shop";
   };
 
+  // `?category=` holds the English key, so the heading needs the label the
+  // French shopper actually recognises.
+  const activeCategory = categories.find((c) => c.key === category);
+
   return (
     <div className="container-rav3s py-12 md:py-16">
       <header className="max-w-2xl">
         <p className="label-xs text-fg/65">{settings.shopDescription}</p>
         <h1 className="mt-3 text-4xl font-black uppercase md:text-5xl">
-          {category || settings.shopTitle}
+          {activeCategory?.label ?? settings.shopTitle}
         </h1>
       </header>
 
       <div className="mt-10 flex flex-col gap-5 border-y border-line py-5 lg:flex-row lg:items-center lg:justify-between">
         <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
           <FilterChip href={buildHref({ category: "" })} active={!category}>
-            All
+            {t("shop.all")}
           </FilterChip>
           {categories.map((c) => (
             <FilterChip
-              key={c}
-              href={buildHref({ category: c })}
-              active={category === c}
+              key={c.key}
+              href={buildHref({ category: c.key })}
+              active={category === c.key}
             >
-              {c}
+              {c.label}
             </FilterChip>
           ))}
         </div>
 
         <div className="flex items-center justify-between gap-4">
-          <SearchBar defaultValue={query} />
-          <SortSelect sort={sort} category={category} query={query} />
+          <SearchBar defaultValue={query} locale={locale} />
+          <SortSelect sort={sort} category={category} query={query} locale={locale} />
         </div>
       </div>
 
       <p className="mt-6 text-xs text-fg/65">
-        {products.length} {products.length === 1 ? "product" : "products"}
+        {t(products.length === 1 ? "shop.resultsCountOne" : "shop.resultsCount", {
+          count: products.length,
+        })}
       </p>
 
       {products.length === 0 ? (
         <div className="mt-16 border border-dashed border-line py-24 text-center">
-          <p className="text-lg font-semibold">Nothing here yet</p>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-fg/70">
-            Try a different category, or clear your search.
-          </p>
+          <p className="text-lg font-semibold">{t("shop.nothingTitle")}</p>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-fg/70">{t("shop.nothingBody")}</p>
           <Link href="/shop" className="btn btn-primary mt-6">
-            Show everything
+            {t("shop.showEverything")}
           </Link>
         </div>
       ) : (
         <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 lg:grid-cols-4 lg:gap-x-6">
-          {products.map((p, i) => (
+          {products.map((p, i) => {
+            const copy = localizeProduct(p, locale);
+            return (
             <ProductCard
               key={p.id}
               slug={p.slug}
-              name={p.name}
+              name={copy.name}
               priceCents={p.priceCents}
               compareCents={p.compareCents}
               image={p.image}
-              badge={p.badge}
+              badge={copy.badge}
               category={p.category}
+              categoryLabel={categories.find((c) => c.key === p.category)?.label}
               currency={settings.currency}
               colors={p.variants}
               priority={i < 4}
+              locale={locale}
             />
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

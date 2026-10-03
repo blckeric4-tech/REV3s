@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/prisma";
 import { CUSTOMER_COOKIE, CUSTOMER_PASSWORD_MIN } from "@/lib/customer-auth-constants";
+import type { TranslationKey } from "@/lib/i18n/en";
 
 /**
  * Customer (shopper) sessions.
@@ -46,13 +47,18 @@ export function normalizeEmail(email: string) {
  * Password rules. Deliberately not stricter than the admin rule: long
  * passphrases are fine, and we never reject a shopper for using a symbol their
  * keyboard layout makes hard to type.
+ *
+ * Returns a translation key rather than a finished sentence: this module is
+ * `server-only` and must not decide which language the shopper is reading.
  */
-export function validatePassword(password: string): string | null {
+export function validatePassword(
+  password: string
+): { key: TranslationKey; values?: Record<string, string | number> } | null {
   if (password.length < CUSTOMER_PASSWORD_MIN) {
-    return `Use at least ${CUSTOMER_PASSWORD_MIN} characters.`;
+    return { key: "error.passwordShort", values: { min: CUSTOMER_PASSWORD_MIN } };
   }
-  if (!/[a-zA-Z]/.test(password)) return "Include at least one letter.";
-  if (!/[0-9]/.test(password)) return "Include at least one number.";
+  if (!/[a-zA-Z]/.test(password)) return { key: "error.passwordLetter" };
+  if (!/[0-9]/.test(password)) return { key: "error.passwordNumber" };
   return null;
 }
 
@@ -119,27 +125,31 @@ export async function requireCustomer(nextPath = "/account"): Promise<CustomerSe
 }
 
 /**
- * Creates a customer. Returns the row, or an error message if the email is
- * already taken — the caller decides how to phrase that to the shopper.
+ * Creates a customer. Returns the row, or a translation key if the input is
+ * unusable — the caller decides how to phrase that to the shopper.
  */
 export async function registerCustomer(
   name: string,
   email: string,
   password: string
-): Promise<{ customer: CustomerSession } | { error: string }> {
+): Promise<
+  { customer: CustomerSession } | { errorKey: TranslationKey; errorValues?: Record<string, string | number> }
+> {
   const cleanEmail = normalizeEmail(email);
   const cleanName = name.trim().replace(/\s+/g, " ");
 
-  if (cleanName.length < 2) return { error: "Please enter your name." };
+  if (cleanName.length < 2) return { errorKey: "error.enterName" };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(cleanEmail)) {
-    return { error: "Please enter a valid email address." };
+    return { errorKey: "error.invalidEmail" };
   }
   const passwordProblem = validatePassword(password);
-  if (passwordProblem) return { error: passwordProblem };
+  if (passwordProblem) {
+    return { errorKey: passwordProblem.key, errorValues: passwordProblem.values };
+  }
 
   const existing = await db.customer.findUnique({ where: { email: cleanEmail } });
   if (existing) {
-    return { error: "An account already uses that email. Try signing in instead." };
+    return { errorKey: "error.emailTaken" };
   }
 
   const created = await db.customer.create({

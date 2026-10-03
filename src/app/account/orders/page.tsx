@@ -1,15 +1,25 @@
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 import { db } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/customer-auth";
 import { formatMoney } from "@/lib/money";
+import { getTranslator } from "@/lib/i18n";
+import { statusKey } from "@/lib/i18n/translate";
 import { AccountEmpty, AccountShell } from "../account-shell";
 
-export const metadata = { title: "My orders" };
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t("account.myOrders") };
+}
+
 export default async function AccountOrdersPage() {
-  const customer = await requireCustomer("/account/orders");
+  const [{ t, locale, tag }, customer] = await Promise.all([
+    getTranslator(),
+    requireCustomer("/account/orders"),
+  ]);
 
   const [account, orders] = await Promise.all([
     db.customer.findUniqueOrThrow({
@@ -37,9 +47,9 @@ export default async function AccountOrdersPage() {
     <AccountShell customer={customer} memberSince={account.createdAt} active="orders">
       {orders.length === 0 ? (
         <AccountEmpty
-          title="No orders yet"
-          body="Your order history will appear here — every order, its status and its receipt, for as long as the account exists."
-          action={{ href: "/shop", label: "Browse the range" }}
+          title={t("account.noOrdersTitle")}
+          body={t("account.noOrdersHistoryBody")}
+          action={{ href: "/shop", label: t("account.browseRange") }}
         />
       ) : (
         <ul className="space-y-4">
@@ -56,25 +66,27 @@ export default async function AccountOrdersPage() {
                       {order.orderNumber}
                     </Link>
                     <p className="mt-1 text-xs text-fg/65">
-                      Placed{" "}
-                      {new Date(order.createdAt).toLocaleDateString("en-GB", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
+                      {t("account.placedOnDate", {
+                        date: new Date(order.createdAt).toLocaleDateString(locale, {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        }),
                       })}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-5">
                     <span className="status-pill" data-status={order.status}>
-                      {order.status}
+                      {statusKey(order.status) ? t(statusKey(order.status)!) : order.status}
                     </span>
                     <div className="text-right">
                       <p className="text-sm font-semibold">
-                        {formatMoney(order.totalCents, order.currency)}
+                        {formatMoney(order.totalCents, order.currency, tag)}
                       </p>
                       <p className="mt-0.5 text-xs text-fg/65">
-                        {order._count.items} {order._count.items === 1 ? "item" : "items"}
+                        {order._count.items}{" "}
+                        {t(order._count.items === 1 ? "account.item" : "account.items")}
                       </p>
                     </div>
                   </div>
@@ -106,14 +118,16 @@ export default async function AccountOrdersPage() {
                 <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface-2 px-5 py-3.5">
                   <p className="text-xs text-fg/65">
                     {order.shippingCents === 0
-                      ? "Free delivery"
-                      : `Delivery ${formatMoney(order.shippingCents, order.currency)}`}
+                      ? t("account.freeDelivery")
+                      : t("account.deliveryWithAmount", {
+                          amount: formatMoney(order.shippingCents, order.currency, tag),
+                        })}
                   </p>
                   <Link
                     href={`/account/orders/${order.orderNumber}`}
                     className="label-xs text-fg underline-offset-4 hover:underline"
                   >
-                    View details
+                    {t("account.viewDetails")}
                   </Link>
                 </footer>
               </article>

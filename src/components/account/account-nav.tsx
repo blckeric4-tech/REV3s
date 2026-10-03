@@ -4,30 +4,49 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { customerSignOut } from "@/app/account/actions";
 import { LogOutIcon, PackageIcon, SettingsIcon, UserIcon } from "@/components/icons";
+import { makeTranslator, type Locale } from "@/lib/i18n/translate";
+import type { TranslationKey } from "@/lib/i18n/en";
 
-const TABS = [
+const TABS: Array<{
+  href: string;
+  label: TranslationKey;
+  Icon: typeof UserIcon;
+  match: (p: string) => boolean;
+}> = [
   {
     href: "/account",
-    label: "Overview",
+    label: "account.overview",
     Icon: UserIcon,
     // Also active while viewing a single order.
     match: (p: string) => p === "/account",
   },
-  { href: "/account/orders", label: "Orders", Icon: PackageIcon, match: (p: string) => p.startsWith("/account/orders") },
+  {
+    href: "/account/orders",
+    label: "account.totalOrders",
+    Icon: PackageIcon,
+    match: (p: string) => p.startsWith("/account/orders"),
+  },
   {
     href: "/account/details",
-    label: "Details",
+    label: "account.details",
     Icon: SettingsIcon,
     match: (p: string) => p.startsWith("/account/details"),
   },
 ];
 
-export function AccountNav({ active }: { active: "overview" | "orders" | "details" }) {
+export function AccountNav({
+  active,
+  locale,
+}: {
+  active: "overview" | "orders" | "details";
+  locale: Locale;
+}) {
   const pathname = usePathname();
+  const t = makeTranslator(locale);
 
   return (
     <nav
-      aria-label="Account sections"
+      aria-label={t("account.sectionsAria")}
       className="-mx-5 mb-8 flex items-center justify-between gap-4 border-b border-line px-5 md:-mx-10 md:px-10"
     >
       {/* Horizontal tab rail that scrolls rather than wrapping on small screens. */}
@@ -44,7 +63,7 @@ export function AccountNav({ active }: { active: "overview" | "orders" | "detail
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {label}
+              {t(label)}
             </Link>
           );
         })}
@@ -56,7 +75,7 @@ export function AccountNav({ active }: { active: "overview" | "orders" | "detail
           className="label-xs flex items-center gap-2 py-3.5 text-fg/60 transition-colors hover:text-fg"
         >
           <LogOutIcon className="h-4 w-4 shrink-0" />
-          Sign out
+          {t("account.signOut")}
         </button>
       </form>
     </nav>

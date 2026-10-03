@@ -3,6 +3,9 @@
 import { useMemo, useState } from "react";
 import { useCart } from "@/components/cart-provider";
 import { formatMoney } from "@/lib/money";
+import type { Locale } from "@/lib/i18n/translate";
+import { makeTranslator } from "@/lib/i18n/translate";
+import { LOCALE_TAGS } from "@/lib/i18n/config";
 
 type Variant = {
   id: string;
@@ -20,6 +23,7 @@ export function VariantPicker({
   image,
   currency,
   lowStockThreshold,
+  locale,
 }: {
   variants: Variant[];
   slug: string;
@@ -28,8 +32,11 @@ export function VariantPicker({
   image: string;
   currency: string;
   lowStockThreshold: number;
+  locale: Locale;
 }) {
   const { add } = useCart();
+  const t = makeTranslator(locale);
+  const tag = LOCALE_TAGS[locale];
 
   const colors = useMemo(() => {
     const map = new Map<string, { color: string; colorHex: string }>();
@@ -80,13 +87,13 @@ export function VariantPicker({
   return (
     <div>
       <div className="flex items-baseline gap-3">
-        <p className="text-2xl font-semibold">{formatMoney(priceCents, currency)}</p>
+        <p className="text-2xl font-semibold">{formatMoney(priceCents, currency, tag)}</p>
       </div>
 
       {/* Colour */}
       <div className="mt-8">
         <div className="flex items-center justify-between">
-          <p className="label-xs text-fg/65">Colour</p>
+          <p className="label-xs text-fg/65">{t("product.colour")}</p>
           <p className="text-xs text-fg/70">{color}</p>
         </div>
         <div className="mt-3 flex flex-wrap gap-2.5">
@@ -120,9 +127,9 @@ export function VariantPicker({
       {/* Size */}
       <div className="mt-7">
         <div className="flex items-center justify-between">
-          <p className="label-xs text-fg/65">Size</p>
+          <p className="label-xs text-fg/65">{t("product.size")}</p>
           <a href="/size-guide" className="text-xs text-fg/70 underline underline-offset-4 hover:text-fg">
-            Size guide
+            {t("product.sizeGuide")}
           </a>
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -157,7 +164,7 @@ export function VariantPicker({
             type="button"
             onClick={() => setQty((q) => Math.max(1, q - 1))}
             className="h-12 w-12 text-lg"
-            aria-label="Decrease quantity"
+            aria-label={t("product.decreaseQty")}
           >
             &minus;
           </button>
@@ -166,7 +173,7 @@ export function VariantPicker({
             type="button"
             onClick={() => setQty((q) => Math.min(selected?.stock ?? 1, q + 1))}
             className="h-12 w-12 text-lg"
-            aria-label="Increase quantity"
+            aria-label={t("product.increaseQty")}
           >
             +
           </button>
@@ -179,26 +186,31 @@ export function VariantPicker({
           className="btn btn-primary h-12 flex-1"
         >
           {soldOut
-            ? "Sold out"
+            ? t("product.soldOut")
             : !size
-              ? "Select a size"
+              ? t("product.selectSize")
               : selected?.stock === 0
-                ? "Sold out"
+                ? t("product.soldOut")
                 : added
-                  ? "Added to bag"
-                  : "Add to bag"}
+                  ? t("product.addedToBag")
+                  : t("product.addToBag")}
         </button>
       </div>
 
       {selected && selected.stock > 0 && selected.stock <= lowStockThreshold ? (
         <p className="mt-3 text-xs font-medium text-fg">
-          Only {selected.stock} left in {selected.size} / {selected.color}
+          {t("product.onlyLeftIn", {
+            count: selected.stock,
+            size: selected.size,
+            colour: selected.color,
+          })}
         </p>
       ) : null}
 
       {added ? (
         <p className="mt-3 text-xs font-medium text-fg/70" role="status">
-          Added. <a href="/cart" className="underline underline-offset-4">View bag</a>
+          {t("product.addedViewBag")}{" "}
+          <a href="/cart" className="underline underline-offset-4">{t("product.viewBag")}</a>
         </p>
       ) : null}
     </div>

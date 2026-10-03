@@ -1,13 +1,17 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { saveProduct, type ActionState } from "@/app/admin/actions";
+import { saveProduct } from "@/app/admin/actions";
+import { initialActionState } from "@/app/admin/action-state";
 import { ImagePicker } from "@/components/admin/image-picker";
+import { makeTranslator, type Locale } from "@/lib/i18n/translate";
+import type { TranslationKey } from "@/lib/i18n/en";
 
 type Variant = {
   id?: string;
   size: string;
   color: string;
+  colorFr: string;
   colorHex: string;
   stock: number;
   sku: string;
@@ -26,12 +30,14 @@ export type ProductSeed = {
   image: string;
   images: string;
   onBodyImages: string;
+  nameFr: string;
+  taglineFr: string;
+  descriptionFr: string;
+  badgeFr: string;
   featured: boolean;
   active: boolean;
   variants: Variant[];
 };
-
-const initial: ActionState = { ok: false, message: "" };
 
 const SUGGESTED_COLORS: Record<string, string> = {
   "Ink Black": "#16171A",
@@ -48,12 +54,15 @@ export function ProductForm({
   seed,
   categories,
   saved,
+  locale,
 }: {
   seed: ProductSeed;
   categories: string[];
   saved?: boolean;
+  locale: Locale;
 }) {
-  const [state, action, pending] = useActionState(saveProduct, initial);
+  const [state, action, pending] = useActionState(saveProduct, initialActionState);
+  const t = makeTranslator(locale);
   const [variants, setVariants] = useState<Variant[]>(seed.variants);
   const [colorName, setColorName] = useState("");
   const [sizeName, setSizeName] = useState("");
@@ -80,6 +89,7 @@ export function ProductForm({
         next.push({
           size,
           color,
+          colorFr: "",
           colorHex: SUGGESTED_COLORS[color] ?? "#888888",
           stock: Math.max(0, Number(stock) || 0),
           sku: "",
@@ -96,6 +106,7 @@ export function ProductForm({
       {
         size: sizeName.trim(),
         color: colorName.trim(),
+        colorFr: "",
         colorHex: SUGGESTED_COLORS[colorName.trim()] ?? "#888888",
         stock: Math.max(0, Number(stock) || 0),
         sku: "",
@@ -112,53 +123,53 @@ export function ProductForm({
 
       {saved ? (
         <p className="rounded-[var(--radius-card)] bg-fg px-4 py-3 text-sm font-semibold">
-          Saved.
+          {t("adminForm.saved")}
         </p>
       ) : null}
-      {state.message ? (
+      {state.messageKey ? (
         <p className="rounded-[var(--radius-card)] bg-fg/10 px-4 py-3 text-sm font-semibold text-fg" role="alert">
-          {state.message}
+          {t(state.messageKey, state.values)}
         </p>
       ) : null}
 
       {/* Basics */}
       <section className="card p-5">
-        <h2 className="label-xs text-fg/65">Basics</h2>
+        <h2 className="label-xs text-fg/65">{t("adminForm.basics")}</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field label="Name" error={err("name")}>
+          <Field locale={locale} label="adminForm.name" error={err("name")}>
             <input
               name="name"
               defaultValue={seed.name}
               required
               className="field"
-              placeholder="Core Heavyweight Tee"
+              placeholder={t("adminForm.namePlaceholder")}
             />
           </Field>
-          <Field label="URL slug" error={err("slug")}>
+          <Field locale={locale} label="adminForm.slug" error={err("slug")}>
             <input
               name="slug"
               defaultValue={seed.slug}
               required
               className="field font-mono text-sm"
-              placeholder="core-heavyweight-tee"
+              placeholder={t("adminForm.slugPlaceholder")}
             />
           </Field>
-          <Field label="Tagline">
+          <Field locale={locale} label="adminForm.tagline">
             <input
               name="tagline"
               defaultValue={seed.tagline}
               className="field"
-              placeholder="240gsm loopback cotton"
+              placeholder={t("adminForm.taglinePlaceholder")}
             />
           </Field>
-          <Field label="Category" error={err("category")}>
+          <Field locale={locale} label="adminForm.category" error={err("category")}>
             <input
               name="category"
               defaultValue={seed.category}
               required
               list="category-list"
               className="field"
-              placeholder="T-Shirts"
+              placeholder={t("adminForm.categoryPlaceholder")}
             />
             <datalist id="category-list">
               {categories.map((c) => (
@@ -166,17 +177,61 @@ export function ProductForm({
               ))}
             </datalist>
           </Field>
-          <Field label="Badge" hint="e.g. New, Best seller, Limited">
+          <Field locale={locale} label="adminForm.badge" hint="adminForm.badgeHint">
             <input name="badge" defaultValue={seed.badge} className="field" />
           </Field>
-          <Field label="Description" error={err("description")} className="sm:col-span-2">
+          <Field
+            locale={locale}
+            label="adminForm.description"
+            error={err("description")}
+            className="sm:col-span-2"
+          >
             <textarea
               name="description"
               defaultValue={seed.description}
               required
               rows={5}
               className="field"
-              placeholder="What makes this piece worth buying?"
+              placeholder={t("adminForm.descriptionPlaceholder")}
+            />
+          </Field>
+        </div>
+      </section>
+
+      {/* French copy */}
+      {/* Its own block, mirroring the French block in the site settings: the
+          admin needs to see the whole translation of a product in one place,
+          and a blank box means "fall back to English" rather than an error. */}
+      <section className="card p-5">
+        <h2 className="label-xs text-fg/65">{t("adminForm.frenchTitle")}</h2>
+        <p className="mt-2 text-xs text-fg/65">{t("adminForm.frenchHint")}</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Field locale={locale} label="adminForm.name">
+            <input
+              name="nameFr"
+              defaultValue={seed.nameFr}
+              className="field"
+              placeholder={t("adminForm.nameFrPlaceholder")}
+            />
+          </Field>
+          <Field locale={locale} label="adminForm.badge">
+            <input name="badgeFr" defaultValue={seed.badgeFr} className="field" />
+          </Field>
+          <Field locale={locale} label="adminForm.tagline">
+            <input
+              name="taglineFr"
+              defaultValue={seed.taglineFr}
+              className="field"
+              placeholder={t("adminForm.taglinePlaceholder")}
+            />
+          </Field>
+          <Field locale={locale} label="adminForm.description" className="sm:col-span-2">
+            <textarea
+              name="descriptionFr"
+              rows={5}
+              defaultValue={seed.descriptionFr}
+              className="field"
+              placeholder={t("adminForm.descriptionPlaceholder")}
             />
           </Field>
         </div>
@@ -184,9 +239,9 @@ export function ProductForm({
 
       {/* Pricing */}
       <section className="card p-5">
-        <h2 className="label-xs text-fg/65">Pricing</h2>
+        <h2 className="label-xs text-fg/65">{t("adminForm.pricing")}</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Field label="Price" error={err("price")}>
+          <Field locale={locale} label="adminForm.price" error={err("price")}>
             <input
               name="price"
               type="number"
@@ -197,7 +252,11 @@ export function ProductForm({
               className="field"
             />
           </Field>
-          <Field label="Compare-at price" hint="Shown struck through. Optional.">
+          <Field
+            locale={locale}
+            label="adminForm.comparePrice"
+            hint="adminForm.comparePriceHint"
+          >
             <input
               name="comparePrice"
               type="number"
@@ -212,31 +271,31 @@ export function ProductForm({
 
       {/* Images */}
       <section className="card p-5">
-        <h2 className="label-xs text-fg/65">Images</h2>
-        <p className="mt-2 text-xs text-fg/70">
-          The first set is the garment on its own. The second set is the same garment
-          worn by a model — customers scroll down to see how it fits.
-        </p>
+        <h2 className="label-xs text-fg/65">{t("adminForm.images")}</h2>
+        <p className="mt-2 text-xs text-fg/70">{t("adminForm.imagesBody")}</p>
 
         <div className="mt-5 grid gap-6">
           <ImagePicker
             name="image"
-            label="Garment on its own (flat shots)"
-            hint="Upload from your computer, paste a URL, or type a path."
+            locale={locale}
+            label={t("adminForm.garmentFlat")}
+            hint={t("adminForm.garmentFlatHint")}
             defaultValue={seed.image}
             single
             error={err("image")}
           />
           <ImagePicker
             name="images"
-            label="More flat shots"
-            hint="Optional extra angles."
+            locale={locale}
+            label={t("adminForm.moreFlat")}
+            hint={t("adminForm.moreFlatHint")}
             defaultValue={seed.images}
           />
           <ImagePicker
             name="onBodyImages"
-            label="Worn on a model"
-            hint="Shown when the customer scrolls down the product page."
+            locale={locale}
+            label={t("adminForm.onModel")}
+            hint={t("adminForm.onModelHint")}
             defaultValue={seed.onBodyImages}
           />
         </div>
@@ -244,56 +303,57 @@ export function ProductForm({
 
       {/* Variants */}
       <section className="card p-5">
-        <h2 className="label-xs text-fg/65">Sizes, colours &amp; stock</h2>
+        <h2 className="label-xs text-fg/65">{t("adminForm.variantsTitle")}</h2>
 
         <div className="mt-4 grid gap-3 rounded-lg border border-line bg-surface/60 p-4 sm:grid-cols-[1fr_1fr_5rem_auto]">
           <input
             value={colorName}
             onChange={(e) => setColorName(e.target.value)}
-            placeholder="Colours (Ink Black, Volt)"
+            placeholder={t("adminForm.coloursPlaceholder")}
             className="field"
-            aria-label="Colours"
+            aria-label={t("adminForm.colours")}
           />
           <input
             value={sizeName}
             onChange={(e) => setSizeName(e.target.value)}
-            placeholder="Sizes (S, M, L)"
+            placeholder={t("adminForm.sizesPlaceholder")}
             className="field"
-            aria-label="Sizes"
+            aria-label={t("adminForm.sizes")}
           />
           <input
             value={stock}
             onChange={(e) => setStock(e.target.value)}
             type="number"
             min="0"
-            placeholder="Stock"
+            placeholder={t("adminForm.stockPlaceholder")}
             className="field"
-            aria-label="Stock per variant"
+            aria-label={t("adminForm.stockPerVariant")}
           />
           <div className="flex gap-2">
             <button type="button" onClick={addVariants} className="btn btn-outline flex-1">
-              Add grid
+              {t("adminForm.addGrid")}
             </button>
             <button type="button" onClick={addSingle} className="btn btn-outline flex-1">
-              Add
+              {t("adminForm.add")}
             </button>
           </div>
         </div>
 
         {variants.length === 0 ? (
           <p className="mt-4 rounded-lg border border-dashed border-line py-8 text-center text-sm text-fg/65">
-            No variants yet. Add colours and sizes above.
+            {t("adminForm.noVariants")}
           </p>
         ) : (
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[40rem] text-sm">
+            <table className="w-full min-w-[52rem] text-sm">
               <thead>
                 <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-fg/70">
-                  <th className="py-2 pr-3">Size</th>
-                  <th className="py-2 pr-3">Colour</th>
-                  <th className="py-2 pr-3">Swatch</th>
-                  <th className="py-2 pr-3">Stock</th>
-                  <th className="py-2 pr-3">SKU</th>
+                  <th className="py-2 pr-3">{t("adminForm.colSize")}</th>
+                  <th className="py-2 pr-3">{t("adminForm.colColour")}</th>
+                  <th className="py-2 pr-3">{t("adminForm.colColourFr")}</th>
+                  <th className="py-2 pr-3">{t("adminForm.colSwatch")}</th>
+                  <th className="py-2 pr-3">{t("adminForm.colStock")}</th>
+                  <th className="py-2 pr-3">{t("adminForm.colSku")}</th>
                   <th className="py-2" />
                 </tr>
               </thead>
@@ -309,7 +369,7 @@ export function ProductForm({
                           )
                         }
                         className="field py-1.5 text-xs"
-                        aria-label={`Size for row ${i + 1}`}
+                        aria-label={t("adminForm.sizeForRow", { n: i + 1 })}
                       />
                     </td>
                     <td className="py-2 pr-3">
@@ -329,7 +389,20 @@ export function ProductForm({
                           )
                         }
                         className="field py-1.5 text-xs"
-                        aria-label={`Colour for row ${i + 1}`}
+                        aria-label={t("adminForm.colourForRow", { n: i + 1 })}
+                      />
+                    </td>
+                    <td className="py-2 pr-3">
+                      <input
+                        value={v.colorFr}
+                        onChange={(e) =>
+                          setVariants((prev) =>
+                            prev.map((x, j) => (j === i ? { ...x, colorFr: e.target.value } : x))
+                          )
+                        }
+                        placeholder={t("adminForm.colourFrPlaceholder")}
+                        className="field py-1.5 text-xs"
+                        aria-label={t("adminForm.colourFrForRow", { n: i + 1 })}
                       />
                     </td>
                     <td className="py-2 pr-3">
@@ -342,7 +415,7 @@ export function ProductForm({
                           )
                         }
                         className="h-8 w-10 cursor-pointer rounded border border-line bg-surface p-0.5"
-                        aria-label={`Swatch for row ${i + 1}`}
+                        aria-label={t("adminForm.swatchForRow", { n: i + 1 })}
                       />
                     </td>
                     <td className="py-2 pr-3">
@@ -358,7 +431,7 @@ export function ProductForm({
                           )
                         }
                         className="field w-20 py-1.5 text-xs"
-                        aria-label={`Stock for row ${i + 1}`}
+                        aria-label={t("adminForm.stockForRow", { n: i + 1 })}
                       />
                     </td>
                     <td className="py-2 pr-3">
@@ -369,9 +442,9 @@ export function ProductForm({
                             prev.map((x, j) => (j === i ? { ...x, sku: e.target.value } : x))
                           )
                         }
-                        placeholder="auto"
+                        placeholder={t("adminForm.autoSku")}
                         className="field w-32 py-1.5 font-mono text-xs"
-                        aria-label={`SKU for row ${i + 1}`}
+                        aria-label={t("adminForm.skuForRow", { n: i + 1 })}
                       />
                     </td>
                     <td className="py-2">
@@ -379,7 +452,7 @@ export function ProductForm({
                         type="button"
                         onClick={() => setVariants((prev) => prev.filter((_, j) => j !== i))}
                         className="px-2 text-fg/70 hover:text-fg"
-                        aria-label={`Remove row ${i + 1}`}
+                        aria-label={t("adminForm.removeRow", { n: i + 1 })}
                       >
                         &times;
                       </button>
@@ -401,7 +474,7 @@ export function ProductForm({
             defaultChecked={seed.active}
             className="h-4 w-4 accent-fg"
           />
-          Visible in the shop
+          {t("adminForm.visible")}
         </label>
         <label className="flex items-center gap-2.5 text-sm">
           <input
@@ -410,13 +483,15 @@ export function ProductForm({
             defaultChecked={seed.featured}
             className="h-4 w-4 accent-fg"
           />
-          Feature on the landing page
+          {t("adminForm.featureLanding")}
         </label>
       </section>
 
       <div className="flex flex-wrap gap-3">
         <button type="submit" disabled={pending} className="btn btn-primary">
-          {pending ? "Saving..." : seed.id ? "Save changes" : "Create product"}
+          {pending
+            ? t("adminForm.saving")
+            : t(seed.id ? "adminForm.saveChanges" : "adminForm.createProduct")}
         </button>
       </div>
     </form>
@@ -427,21 +502,24 @@ function Field({
   label,
   hint,
   error,
+  locale,
   className = "",
   children,
 }: {
-  label: string;
-  hint?: string;
-  error?: string;
+  label: TranslationKey;
+  hint?: TranslationKey;
+  error?: TranslationKey;
+  locale: Locale;
   className?: string;
   children: React.ReactNode;
 }) {
+  const t = makeTranslator(locale);
   return (
     <label className={`block ${className}`}>
-      <span className="label-xs text-fg/65">{label}</span>
+      <span className="label-xs text-fg/65">{t(label)}</span>
       <span className="mt-2 block">{children}</span>
-      {hint && !error ? <span className="mt-1.5 block text-xs text-fg/65">{hint}</span> : null}
-      {error ? <span className="mt-1.5 block text-xs text-fg">{error}</span> : null}
+      {hint && !error ? <span className="mt-1.5 block text-xs text-fg/65">{t(hint)}</span> : null}
+      {error ? <span className="mt-1.5 block text-xs text-fg">{t(error)}</span> : null}
     </label>
   );
 }

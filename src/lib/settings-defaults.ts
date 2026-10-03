@@ -74,4 +74,36 @@ export const SITE_SETTINGS_DEFAULTS = {
     "RAV3S is an independent label making heavyweight essentials in small runs.",
   footerInstagram: "https://instagram.com/rav3s",
   footerTiktok: "https://tiktok.com/@rav3s",
+
+  // ── French template copy ──
+  // These ship with the template so a fresh database renders in French without
+  // the admin having to type anything. They are only the *defaults* for a new
+  // row; once the admin saves, their text wins. `scripts/backfill-french.mjs`
+  // applies them to an existing row, and only ever fills columns that are
+  // still NULL, so it can never overwrite a translation already written.
+  //
+  // Keep `categoriesFr` and `valuePropsFr` in the same order as the English
+  // lists above — the storefront pairs them by index.
+  taglineFr: "L'essentiel, bien conçu.",
+  announcementTextFr: "Livraison offerte dès 50 000 FRW",
+  whatsappMessageFr: "Bonjour RAV3S ! Je souhaite commander des vêtements.",
+  heroKickerFr: "Drop 04 — Automne/Hiver",
+  heroTitleFr: "CONÇU POUR DURER",
+  heroBodyFr:
+    "T-shirts lourds et tricots coupés dans un tissu qui s'améliore à chaque lavage.",
+  heroCtaTextFr: "COMMANDER EN LIGNE",
+  heroSecondaryTextFr: "Nouveautés",
+  storyKickerFr: "La marque",
+  storyTitleFr: "Nous faisons moins de choses, mais mieux.",
+  storyBodyFr:
+    "RAV3S a commencé dans une seule pièce, avec une presse à sérigraphie et une idée têtue : les vêtements du quotidien doivent être conçus pour durer plus longtemps que la tendance qui vous les a vendus.",
+  valuePropsFr:
+    '["Coton lourd 240 g/m²","Production en petites séries","Livraison offerte dès 50 000 FRW","Paiement par MTN, Airtel ou carte"]',
+  shopTitleFr: "Toute la collection",
+  shopDescriptionFr: "Chaque pièce que nous fabriquons, dans chaque couleur et chaque taille.",
+  categoriesFr: '["T-shirts","Pulls","Sweats à capuche","Vestes","Accessoires"]',
+  newsletterTitleFr: "Soyez les premiers informés de chaque drop",
+  newsletterBodyFr: "Inscrivez-vous pour les liens en avant-première et les réassorts, rien d'autre.",
+  footerAboutFr:
+    "RAV3S est une marque indépendante qui produit des essentiels lourds en petites séries.",
 } as const;

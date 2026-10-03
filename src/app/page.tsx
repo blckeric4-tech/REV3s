@@ -1,26 +1,32 @@
 import Image from "next/image";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
-import { getSettings, getValueProps, getCategories } from "@/lib/settings";
+import {
+  getLocalizedSettings,
+  getLocalizedValueProps,
+  getLocalizedCategories,
+} from "@/lib/settings";
 import { parseList, formatMoney } from "@/lib/money";
+import { localizeProduct } from "@/lib/localize";
 import { AutoRail } from "@/components/auto-rail";
 import { Reveal } from "@/components/reveal";
 import { NewsletterForm } from "@/components/newsletter-form";
 import { whatsappLink } from "@/lib/contact";
+import { getTranslator } from "@/lib/i18n";
 
 export default async function HomePage() {
-  const [settings, valueProps, categories] = await Promise.all([
-    getSettings(),
-    getValueProps(),
-    getCategories(),
+  const [{ t, locale, tag }] = await Promise.all([getTranslator()]);
+  const [settings, valueProps, categories, products] = await Promise.all([
+    getLocalizedSettings(locale),
+    getLocalizedValueProps(locale),
+    getLocalizedCategories(locale),
+    db.product.findMany({
+      where: { active: true },
+      include: { variants: { select: { color: true, colorHex: true } } },
+      orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
+      take: 20,
+    }),
   ]);
-
-  const products = await db.product.findMany({
-    where: { active: true },
-    include: { variants: { select: { color: true, colorHex: true } } },
-    orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
-    take: 20,
-  });
 
   const gallery = parseList(settings.galleryImages);
   const galleryFrames = gallery.length
@@ -97,7 +103,7 @@ export default async function HomePage() {
 
           <div className="mt-10 flex flex-wrap items-center gap-3">
             <Link href={settings.heroCtaHref || "/shop"} className="btn btn-invert px-8 py-4">
-              {settings.heroCtaText || "Order online"}
+              {settings.heroCtaText || t("home.orderOnline")}
             </Link>
             {settings.heroSecondaryText ? (
               <Link
@@ -114,7 +120,7 @@ export default async function HomePage() {
                 rel="noopener noreferrer"
                 className="btn btn-inverse-outline px-8 py-4"
               >
-                Order on WhatsApp
+                {t("home.orderOnWhatsapp")}
               </a>
             ) : null}
           </div>
@@ -125,13 +131,16 @@ export default async function HomePage() {
           aria-hidden
           className="pointer-events-none absolute bottom-6 left-1/2 hidden -translate-x-1/2 md:block"
         >
-          <span className="label-xs block text-inverse-fg/75">Scroll</span>
+          <span className="label-xs block text-inverse-fg/75">{t("home.scroll")}</span>
           <span className="mx-auto mt-2 block h-10 w-px bg-inverse-fg/40" />
         </div>
       </section>
 
       {/* ─────────── SCROLLING PHOTO STRIP ─────────── */}
-      <section className="overflow-hidden border-b border-line bg-inverse py-6" aria-label="Scrolling photo strip">
+      <section
+        className="overflow-hidden border-b border-line bg-inverse py-6"
+        aria-label={t("home.galleryStrip")}
+      >
         <div className="flex w-max animate-[var(--animate-marquee)] gap-3">
           {[...galleryFrames, ...galleryFrames].map((src, i) => (
             <div
@@ -168,25 +177,28 @@ export default async function HomePage() {
         <div className="container-rav3s">
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div>
-              <p className="label-xs text-fg/65">Scroll the rail</p>
+              <p className="label-xs text-fg/65">{t("home.scrollRail")}</p>
               <h2 className="mt-3 text-3xl font-black uppercase md:text-5xl">
-                The <span className="outline-type">drop</span>
+                {t("home.theDropLead")}{" "}
+                <span className="outline-type">{t("home.theDropWord")}</span>
               </h2>
             </div>
             <Link href="/shop" className="btn btn-primary">
-              Order online &rarr;
+              {t("home.orderOnlineArrow")}
             </Link>
           </div>
         </div>
 
         {products.length === 0 ? (
           <p className="container-rav3s mt-12 text-sm text-fg/65">
-            No products yet. Add some from the admin dashboard.
+            {t("home.noProducts")}
           </p>
         ) : (
           <div className="mt-12">
-            <AutoRail duration={50}>
-              {products.map((p) => (
+            <AutoRail duration={50} locale={locale}>
+              {products.map((p) => {
+                const copy = localizeProduct(p, locale);
+                return (
                 <Link
                   key={p.id}
                   href={`/product/${p.slug}`}
@@ -195,28 +207,29 @@ export default async function HomePage() {
                   <div className="media-mat relative aspect-3/4 overflow-hidden rounded-[var(--radius-card)] border border-line">
                     <Image
                       src={p.image}
-                      alt={p.name}
+                      alt={copy.name}
                       fill
                       sizes="(max-width: 640px) 256px, 304px"
                       className="media-fit transition-transform duration-500 group-hover:scale-105"
                     />
-                    {p.badge ? (
+                    {copy.badge ? (
                       <span className="label-xs absolute left-3 top-3 rounded-full bg-inverse px-3 py-1.5 text-inverse-fg">
-                        {p.badge}
+                        {copy.badge}
                       </span>
                     ) : null}
-                    <span className="label-xs absolute bottom-3 right-3 rounded-full bg-surface px-3 py-1.5 text-fg opacity-0 transition-opacity group-hover:opacity-100">
-                      View
-                    </span>
+<span className="label-xs absolute bottom-3 right-3 rounded-full bg-surface px-3 py-1.5 text-fg opacity-0 transition-opacity group-hover:opacity-100">
+                       {t("home.view")}
+                     </span>
                   </div>
                   <div className="mt-3 flex items-baseline justify-between gap-3 px-1">
-                    <p className="truncate text-sm font-semibold uppercase">{p.name}</p>
+                    <p className="truncate text-sm font-semibold uppercase">{copy.name}</p>
                     <p className="shrink-0 text-sm">
-                      {formatMoney(p.priceCents, settings.currency)}
+                      {formatMoney(p.priceCents, settings.currency, tag)}
                     </p>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
             </AutoRail>
           </div>
         )}
@@ -226,15 +239,15 @@ export default async function HomePage() {
       {categories.length > 0 ? (
         <section className="section-ink py-20 md:py-24">
           <div className="container-rav3s">
-            <p className="label-xs text-inverse-fg/70">Shop by category</p>
+            <p className="label-xs text-inverse-fg/70">{t("home.shopByCategory")}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               {categories.map((c) => (
                 <Link
-                  key={c}
-                  href={`/shop?category=${encodeURIComponent(c)}`}
+                  key={c.key}
+                  href={`/shop?category=${encodeURIComponent(c.key)}`}
                   className="group flex items-center gap-3 rounded-full border border-inverse/25 px-6 py-3 transition-colors hover:bg-surface hover:text-fg"
                 >
-                  <span className="label-xs">{c}</span>
+                  <span className="label-xs">{c.label}</span>
                   <span className="text-inverse-fg/70 transition-transform group-hover:translate-x-1 group-hover:text-inverse-fg">
                     &rarr;
                   </span>
@@ -251,7 +264,7 @@ export default async function HomePage() {
           <Reveal className="media-mat relative aspect-4/3 overflow-hidden rounded-[var(--radius-card)] border border-line">
             <Image
               src={settings.storyImage || "/images/story.svg"}
-              alt="RAV3S workshop"
+              alt={t("about.workshopAlt")}
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               className="mono-media media-fit"
@@ -267,10 +280,10 @@ export default async function HomePage() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/about" className="btn btn-primary">
-                Read our story
+                {t("home.readStory")}
               </Link>
               <Link href="/shop" className="btn btn-outline">
-                Shop the label
+                {t("home.shopLabel")}
               </Link>
             </div>
           </Reveal>
@@ -281,11 +294,13 @@ export default async function HomePage() {
       <section className="container-rav3s pb-20 md:pb-28">
         <div className="flex flex-wrap items-end justify-between gap-6">
           <div>
-            <p className="label-xs text-fg/65">In the wild</p>
-            <h2 className="mt-3 text-3xl font-black uppercase md:text-4xl">Lookbook</h2>
+            <p className="label-xs text-fg/65">{t("home.inTheWild")}</p>
+            <h2 className="mt-3 text-3xl font-black uppercase md:text-4xl">
+              {t("home.lookbook")}
+            </h2>
           </div>
           <Link href="/shop" className="btn btn-outline">
-            Order online
+            {t("home.orderOnline")}
           </Link>
         </div>
 
@@ -300,7 +315,7 @@ export default async function HomePage() {
             >
               <Image
                 src={src}
-                alt="RAV3S lookbook"
+                alt={t("home.lookbookAlt")}
                 fill
                 sizes="(max-width: 768px) 50vw, 25vw"
                 className="mono-media media-fit"
@@ -314,13 +329,12 @@ export default async function HomePage() {
       {settings.whatsappOn && settings.whatsappNumber ? (
         <section className="section-ink py-16 md:py-20">
           <div className="container-rav3s flex flex-col items-center text-center">
-            <p className="label-xs text-inverse-fg/70">Prefer to talk?</p>
+            <p className="label-xs text-inverse-fg/70">{t("home.preferToTalk")}</p>
             <h2 className="mt-4 text-3xl font-black uppercase leading-tight md:text-5xl">
-              Order on WhatsApp
+              {t("home.orderOnWhatsapp")}
             </h2>
             <p className="mt-5 max-w-md text-sm text-inverse-fg/85">
-              Send us a message with your size and colour. We will confirm stock and
-              arrange delivery across Kigali.
+              {t("home.whatsappBody")}
             </p>
             <a
               href={whatsappLink(settings.whatsappNumber, settings.whatsappMessage)}
@@ -328,7 +342,7 @@ export default async function HomePage() {
               rel="noopener noreferrer"
               className="btn btn-invert mt-9 px-9 py-4"
             >
-              Chat with us
+              {t("home.chatWithUs")}
             </a>
           </div>
         </section>
@@ -342,7 +356,7 @@ export default async function HomePage() {
               {settings.newsletterTitle}
             </h2>
             <p className="mx-auto mt-4 max-w-md text-sm text-fg/70">{settings.newsletterBody}</p>
-            <NewsletterForm className="mx-auto mt-8 max-w-md" />
+            <NewsletterForm className="mx-auto mt-8 max-w-md" locale={locale} />
           </div>
         </section>
       ) : null}

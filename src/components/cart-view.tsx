@@ -2,29 +2,43 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/components/cart-provider";
 import { formatMoney } from "@/lib/money";
 import { shippingCentsFor } from "@/lib/cart";
 import { BagIcon } from "@/components/icons";
+import type { Locale, TranslationKey } from "@/lib/i18n/translate";
+import { getDictionary, makeTranslator } from "@/lib/i18n/translate";
+import { LOCALE_TAGS } from "@/lib/i18n/config";
 
 type Method = "paypack" | "flutterwave" | "stripe";
 
-const METHOD_COPY: Record<Method, { label: string; hint: string }> = {
+const METHOD_COPY: Record<Method, { label: TranslationKey; hint: TranslationKey }> = {
   paypack: {
-    label: "MTN MoMo / Airtel Money",
-    hint: "We push a prompt to your phone. Approve it to pay.",
+    label: "cart.method.paypack.label",
+    hint: "cart.method.paypack.hint",
   },
   flutterwave: {
-    label: "Card / Mobile Money",
-    hint: "Visa, Mastercard or mobile money via Flutterwave.",
+    label: "cart.method.flutterwave.label",
+    hint: "cart.method.flutterwave.hint",
   },
   stripe: {
-    label: "International card",
-    hint: "Apple Pay, Google Pay and cards worldwide.",
+    label: "cart.method.stripe.label",
+    hint: "cart.method.stripe.hint",
   },
 };
+
+/**
+ * `/api/checkout` answers with a translation *key* rather than a sentence, so
+ * the message can be shown in the visitor's own language. Anything that is not
+ * a real key (an unexpected runtime message, say) passes through untouched.
+ */
+function localizeError(locale: Locale, raw: unknown): string | null {
+  if (typeof raw !== "string" || raw === "") return null;
+  const key = raw as TranslationKey;
+  return key in getDictionary(locale) ? makeTranslator(locale)(key) : raw;
+}
 
 export function CartView({
   currency,
@@ -32,6 +46,7 @@ export function CartView({
   freeShippingOverCents,
   methods,
   customer,
+  locale,
 }: {
   currency: string;
   flatShippingCents: number;
@@ -39,9 +54,12 @@ export function CartView({
   methods: Method[];
   /** Prefills checkout and shows the "order history" reassurance. */
   customer: { name: string; email: string } | null;
+  locale: Locale;
 }) {
   const { lines, ready, subtotal, setQuantity, remove, clear } = useCart();
   const router = useRouter();
+  const t = useMemo(() => makeTranslator(locale), [locale]);
+  const tag = LOCALE_TAGS[locale];
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -54,7 +72,7 @@ export function CartView({
   const [waiting, setWaiting] = useState<{ ref: string; orderNumber: string; pollUrl: string } | null>(
     null
   );
-  const [pollState, setPollState] = useState("Check your phone and approve the payment.");
+  const [pollState, setPollState] = useState("");
 
   const shipping = shippingCentsFor(lines, flatShippingCents, freeShippingOverCents);
   const toFree = Math.max(0, freeShippingOverCents - subtotal);
@@ -74,11 +92,7 @@ export function CartView({
           router.replace(`/checkout/success?order=${waiting.orderNumber}&method=paypack`);
           return;
         }
-        setPollState(
-          String(data.status || "").toUpperCase() === "PENDING"
-            ? "Waiting for you to approve on your phone..."
-            : "Waiting for you to approve on your phone..."
-        );
+        setPollState(t("cart.waitingApprove"));
       } catch {
         /* keep polling — the phone approval may not have landed yet */
       }
@@ -89,7 +103,7 @@ export function CartView({
       stopped = true;
       window.clearInterval(id);
     };
-  }, [waiting, clear, router]);
+  }, [waiting, clear, router, t]);
 
   async function checkout() {
     setBusy(true);
@@ -107,7 +121,7 @@ export function CartView({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Could not start checkout.");
+      if (!res.ok) throw new Error(localizeError(locale, data.error) ?? t("cart.errStart"));
 
       if (data.method === "paypack") {
         setWaiting({ ref: data.ref, orderNumber: data.orderNumber, pollUrl: data.pollUrl });
@@ -117,9 +131,9 @@ export function CartView({
         window.location.href = data.url;
         return;
       }
-      throw new Error("The payment service did not return a link.");
+      throw new Error(t("cart.errNoLink"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(e instanceof Error ? e.message : t("cart.errGeneric"));
       setBusy(false);
     }
   }
@@ -137,12 +151,12 @@ export function CartView({
         >
           <BagIcon className="h-7 w-7 text-haze" />
         </span>
-        <p className="mt-5 font-display text-xl uppercase">Your bag is empty</p>
+        <p className="mt-5 font-display text-xl uppercase">{t("cart.empty")}</p>
         <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-fg/70">
-          Nothing in here yet. Have a look at the new drop.
+          {t("cart.emptyBody")}
         </p>
         <Link href="/shop" className="btn btn-primary mt-7">
-          Start shopping
+          {t("cart.startShopping")}
         </Link>
       </div>
     );
@@ -152,14 +166,12 @@ export function CartView({
     return (
       <div className="mx-auto mt-16 max-w-lg rounded-[var(--radius-card)] border border-line p-8 text-center">
         <span className="mx-auto block h-12 w-12 animate-spin rounded-full border-2 border-line border-t-fg" />
-        <h2 className="mt-6 text-2xl font-black uppercase">Approve your payment</h2>
-        <p className="mt-3 text-sm text-fg/70">{pollState}</p>
+        <h2 className="mt-6 text-2xl font-black uppercase">{t("cart.approveTitle")}</h2>
+        <p className="mt-3 text-sm text-fg/70">{pollState || t("cart.checkPhone")}</p>
         <p className="mt-6 rounded-lg bg-surface-2 px-4 py-3 font-mono text-sm">
           {waiting.orderNumber}
         </p>
-        <p className="mt-4 text-xs text-fg/65">
-          This page updates by itself as soon as the payment lands.
-        </p>
+        <p className="mt-4 text-xs text-fg/65">{t("cart.selfUpdate")}</p>
       </div>
     );
   }
@@ -168,9 +180,9 @@ export function CartView({
     <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_24rem] lg:gap-16">
       <div>
         <div className="hidden border-b border-line pb-3 text-xs text-fg/65 sm:grid sm:grid-cols-[1fr_7rem_7rem_2rem]">
-          <span>Product</span>
-          <span className="text-center">Quantity</span>
-          <span className="text-right">Total</span>
+          <span>{t("cart.productCol")}</span>
+          <span className="text-center">{t("cart.quantityCol")}</span>
+          <span className="text-right">{t("cart.totalCol")}</span>
           <span />
         </div>
 
@@ -199,14 +211,14 @@ export function CartView({
                   {line.color} / {line.size}
                 </p>
                 <p className="mt-1 text-xs text-fg/70 sm:hidden">
-                  {formatMoney(line.priceCents, currency)} each
+                  {t("cart.each", { amount: formatMoney(line.priceCents, currency, tag) })}
                 </p>
                 <button
                   type="button"
                   onClick={() => remove(line.variantId)}
                   className="mt-2 text-xs text-fg/65 underline underline-offset-4 hover:text-fg"
                 >
-                  Remove
+                  {t("cart.remove")}
                 </button>
               </div>
 
@@ -216,7 +228,7 @@ export function CartView({
                     type="button"
                     onClick={() => setQuantity(line.variantId, line.quantity - 1)}
                     className="h-9 w-9"
-                    aria-label={`Decrease quantity of ${line.name}`}
+                    aria-label={t("cart.decreaseOf", { name: line.name })}
                   >
                     &minus;
                   </button>
@@ -228,7 +240,7 @@ export function CartView({
                     onClick={() => setQuantity(line.variantId, line.quantity + 1)}
                     disabled={line.quantity >= line.stock}
                     className="h-9 w-9 disabled:opacity-60"
-                    aria-label={`Increase quantity of ${line.name}`}
+                    aria-label={t("cart.increaseOf", { name: line.name })}
                   >
                     +
                   </button>
@@ -236,14 +248,14 @@ export function CartView({
               </div>
 
               <p className="hidden text-right text-sm font-semibold sm:block">
-                {formatMoney(line.priceCents * line.quantity, currency)}
+                {formatMoney(line.priceCents * line.quantity, currency, tag)}
               </p>
 
               <button
                 type="button"
                 onClick={() => remove(line.variantId)}
                 className="hidden text-fg/70 transition-colors hover:text-fg sm:block"
-                aria-label={`Remove ${line.name}`}
+                aria-label={t("cart.removeName", { name: line.name })}
               >
                 &times;
               </button>
@@ -253,32 +265,32 @@ export function CartView({
 
         <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
           <Link href="/shop" className="label-xs text-fg/70 underline underline-offset-4 hover:text-fg">
-            Continue shopping
+            {t("cart.continueShopping")}
           </Link>
           <button
             type="button"
             onClick={clear}
             className="label-xs text-fg/70 underline underline-offset-4 hover:text-fg"
           >
-            Clear bag
+            {t("cart.clearBag")}
           </button>
         </div>
       </div>
 
       <aside className="lg:sticky lg:top-28 lg:self-start">
         <div className="card p-6">
-          <h2 className="label-xs text-fg/65">Checkout</h2>
+          <h2 className="label-xs text-fg/65">{t("cart.checkout")}</h2>
 
           {customer ? (
             <p className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-line bg-surface-2 px-4 py-3 text-xs text-fg/75">
               <span className="min-w-0 truncate">
-                Paying as <span className="font-semibold">{customer.name}</span>
+                {t("cart.payAs")} <span className="font-semibold">{customer.name}</span>
               </span>
               <Link
                 href="/account"
                 className="shrink-0 underline underline-offset-4 hover:text-fg"
               >
-                Change
+                {t("cart.change")}
               </Link>
             </p>
           ) : null}
@@ -286,14 +298,14 @@ export function CartView({
           <div className="mt-5 space-y-3">
             <input
               className="field"
-              placeholder="Full name"
+              placeholder={t("cart.fullName")}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               autoComplete="name"
             />
             <input
               className="field"
-              placeholder="Phone (0788 000 000)"
+              placeholder={t("cart.phone")}
               inputMode="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -302,7 +314,7 @@ export function CartView({
             />
             <input
               className={customer ? "field cursor-not-allowed opacity-70" : "field"}
-              placeholder={customer ? "Email" : "Email (optional)"}
+              placeholder={customer ? t("cart.email") : t("cart.emailOptional")}
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -313,20 +325,20 @@ export function CartView({
 
           {!customer ? (
             <p className="mt-4 text-xs text-fg/70">
-              Have an account?{" "}
+              {t("cart.haveAccount")}{" "}
               <Link
                 href="/account/sign-in?next=%2Fcart"
                 className="font-semibold text-fg underline underline-offset-4"
               >
-                Sign in
+                {t("account.signInButton")}
               </Link>{" "}
-              to check out faster and keep your order history.
+              {t("cart.signInFaster")}
             </p>
           ) : null}
 
           {methods.length > 0 ? (
             <fieldset className="mt-6">
-              <legend className="label-xs text-fg/65">Payment method</legend>
+              <legend className="label-xs text-fg/65">{t("cart.paymentMethod")}</legend>
               <div className="mt-3 space-y-2">
                 {methods.map((m) => (
                   <label
@@ -344,8 +356,10 @@ export function CartView({
                       className="mt-1 accent-black"
                     />
                     <span>
-                      <span className="block text-sm font-semibold">{METHOD_COPY[m].label}</span>
-                      <span className="mt-0.5 block text-xs text-fg/70">{METHOD_COPY[m].hint}</span>
+                      <span className="block text-sm font-semibold">{t(METHOD_COPY[m].label)}</span>
+                      <span className="mt-0.5 block text-xs text-fg/70">
+                        {t(METHOD_COPY[m].hint)}
+                      </span>
                     </span>
                   </label>
                 ))}
@@ -353,20 +367,19 @@ export function CartView({
             </fieldset>
           ) : (
             <p className="mt-6 rounded-lg border border-dashed border-line p-4 text-xs text-fg/70">
-              Online payment is not configured yet. Please order on WhatsApp and we will sort
-              the details out with you.
+              {t("cart.onlineNotConfigured")}
             </p>
           )}
 
           <dl className="mt-6 space-y-3 text-sm">
             <div className="flex justify-between">
-              <dt className="text-fg/70">Subtotal</dt>
-              <dd className="font-semibold">{formatMoney(subtotal, currency)}</dd>
+              <dt className="text-fg/70">{t("cart.subtotal")}</dt>
+              <dd className="font-semibold">{formatMoney(subtotal, currency, tag)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-fg/70">Delivery</dt>
+              <dt className="text-fg/70">{t("cart.delivery")}</dt>
               <dd className="font-semibold">
-                {shipping === 0 ? "Free" : formatMoney(shipping, currency)}
+                {shipping === 0 ? t("cart.freeShipping") : formatMoney(shipping, currency, tag)}
               </dd>
             </div>
           </dl>
@@ -382,16 +395,16 @@ export function CartView({
                 />
               </div>
               <p className="mt-2 text-xs text-fg/70">
-                {formatMoney(toFree, currency)} away from free delivery
+                {t("cart.awayFromFree", { amount: formatMoney(toFree, currency, tag) })}
               </p>
             </>
           ) : (
-            <p className="mt-2 text-xs text-fg/70">You have unlocked free delivery</p>
+            <p className="mt-2 text-xs text-fg/70">{t("cart.unlockedFree")}</p>
           )}
 
           <div className="mt-5 flex justify-between border-t border-line pt-5">
-            <span className="text-sm font-semibold">Total</span>
-            <span className="text-lg font-bold">{formatMoney(subtotal + shipping, currency)}</span>
+            <span className="text-sm font-semibold">{t("cart.total")}</span>
+            <span className="text-lg font-bold">{formatMoney(subtotal + shipping, currency, tag)}</span>
           </div>
 
           {methods.length > 0 ? (
@@ -401,7 +414,7 @@ export function CartView({
               disabled={busy || (needsPhone && phone.replace(/\D/g, "").length < 9)}
               className="btn btn-primary mt-6 w-full"
             >
-              {busy ? "Starting payment..." : "Pay now"}
+              {busy ? t("cart.startingPayment") : t("cart.payNow")}
             </button>
           ) : null}
 
@@ -412,7 +425,7 @@ export function CartView({
           ) : null}
 
           <p className="mt-4 text-center text-[11px] leading-relaxed text-fg/65">
-            Pay with MTN MoMo, Airtel Money, Tigo Cash or an international card.
+            {t("cart.payNote")}
           </p>
         </div>
       </aside>

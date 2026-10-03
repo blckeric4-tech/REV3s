@@ -49,6 +49,14 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  /// French copy. Nullable with no default so the column is added to an
+  /// existing TiDB table without touching current rows; a blank or missing
+  /// value falls back to the English field above.
+  nameFr        String? @db.VarChar(255)
+  taglineFr     String? @db.VarChar(255)
+  descriptionFr String? @db.Text
+  badgeFr       String? @db.VarChar(128)
+
   variants Variant[]
   items    OrderItem[]
 
@@ -61,6 +69,8 @@ model Variant {
   productId String
   size      String   @db.VarChar(64)
   color     String   @db.VarChar(128)
+  /// French colour name; blank falls back to `color`.
+  colorFr   String?  @db.VarChar(128)
   colorHex  String   @db.VarChar(32)
   stock     Int      @default(0)
   sku       String   @unique @db.VarChar(128)
@@ -176,6 +186,37 @@ model SiteSettings {
   tiktokUrl         String  @db.Text
   facebookUrl       String  @db.Text
   instagramUrl      String  @db.Text
+
+  // ── French overrides ─────────────────────────────────────────────────────
+  // Every column below is optional. `localizeSettings()` in src/lib/settings.ts
+  // picks the French value when it is non-blank and otherwise falls back to the
+  // English field of the same name, so a partially translated site is valid and
+  // the French site is complete as each field gets filled in.
+  //
+  // These must stay nullable and must NOT be given a column default: like every
+  // other prose column here, MySQL/TiDB rejects a DEFAULT on a BLOB/TEXT column,
+  // and adding them to SITE_SETTINGS_DEFAULTS would make the row uncreatable.
+  //
+  // Brand marks (siteName, logoText, logoMark) and proper nouns (mapAddress,
+  // footerAddress, footerEmail) are deliberately absent — they do not translate.
+  taglineFr             String? @db.VarChar(255)
+  announcementTextFr    String? @db.VarChar(500)
+  whatsappMessageFr     String? @db.Text
+  heroKickerFr          String? @db.Text
+  heroTitleFr           String? @db.Text
+  heroBodyFr            String? @db.Text
+  heroCtaTextFr         String? @db.Text
+  heroSecondaryTextFr   String? @db.Text
+  storyKickerFr         String? @db.Text
+  storyTitleFr          String? @db.Text
+  storyBodyFr           String? @db.Text
+  valuePropsFr          String? @db.Text
+  shopTitleFr           String? @db.Text
+  shopDescriptionFr     String? @db.Text
+  categoriesFr          String? @db.Text
+  newsletterTitleFr     String? @db.Text
+  newsletterBodyFr      String? @db.Text
+  footerAboutFr         String? @db.Text
 
   // media
   heroVideo     String  @db.Text

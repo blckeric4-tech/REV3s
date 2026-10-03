@@ -2,10 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import type { Locale } from "@/lib/i18n/translate";
+import { makeTranslator } from "@/lib/i18n/translate";
 
-export function SearchBar({ defaultValue = "" }: { defaultValue?: string }) {
+export function SearchBar({
+  defaultValue = "",
+  locale,
+}: {
+  defaultValue?: string;
+  locale: Locale;
+}) {
   const router = useRouter();
   const [value, setValue] = useState(defaultValue);
+  const t = makeTranslator(locale);
 
   return (
     <form
@@ -21,8 +30,8 @@ export function SearchBar({ defaultValue = "" }: { defaultValue?: string }) {
         type="search"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search"
-        aria-label="Search products"
+        placeholder={t("shop.search")}
+        aria-label={t("shop.searchPlaceholder")}
         className="field w-36 py-2 text-xs sm:w-44"
       />
     </form>

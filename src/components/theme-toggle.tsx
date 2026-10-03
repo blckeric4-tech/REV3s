@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
+import { makeTranslator, type Locale } from "@/lib/i18n/translate";
 
 const KEY = "rav3s-theme";
 type Theme = "light" | "dark";
@@ -38,10 +39,13 @@ const getServerSnapshot = (): Theme => "light";
 export function ThemeToggle({
   variant = "icon",
   className = "",
+  locale = "en",
 }: {
   variant?: "icon" | "labelled";
   className?: string;
+  locale?: Locale;
 }) {
+  const t = makeTranslator(locale);
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const isDark = theme === "dark";
 
@@ -60,8 +64,8 @@ export function ThemeToggle({
     <button
       type="button"
       onClick={toggle}
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      title={isDark ? "Light mode" : "Dark mode"}
+      aria-label={isDark ? t("theme.toLight") : t("theme.toDark")}
+      title={isDark ? t("theme.lightMode") : t("theme.darkMode")}
       className={
         variant === "labelled"
           ? `btn btn-outline h-9 px-4 ${className}`
@@ -78,7 +82,7 @@ export function ThemeToggle({
         </svg>
       )}
       {variant === "labelled" ? (
-        <span className="ml-2">{isDark ? "Light" : "Dark"}</span>
+        <span className="ml-2">{isDark ? t("theme.light") : t("theme.dark")}</span>
       ) : null}
     </button>
   );

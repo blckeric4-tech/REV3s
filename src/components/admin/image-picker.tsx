@@ -2,6 +2,19 @@
 
 import Image from "next/image";
 import { useRef, useState } from "react";
+import { makeTranslator, getDictionary, type Locale, type TranslationKey } from "@/lib/i18n/translate";
+
+/**
+ * `/api/upload` answers with a translation *key*, not a sentence, so the
+ * message can be shown in the admin's own language. Anything that is not a real
+ * key passes through untouched.
+ */
+function uploadError(locale: Locale, raw: unknown): string {
+  const t = makeTranslator(locale);
+  if (typeof raw !== "string" || raw === "") return t("picker.uploadFailed");
+  const key = raw as TranslationKey;
+  return key in getDictionary(locale) ? t(key) : raw;
+}
 
 type Props = {
   /** Form field name. */
@@ -14,6 +27,7 @@ type Props = {
   error?: string;
   /** "video" swaps the preview and accept list for the hero video field. */
   kind?: "image" | "video";
+  locale: Locale;
 };
 
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp,image/avif,image/gif";
@@ -38,7 +52,9 @@ export function ImagePicker({
   single = false,
   error,
   kind = "image",
+  locale,
 }: Props) {
+  const t = makeTranslator(locale);
   const isVideo = kind === "video";
   const initial = defaultValue
     .split(",")
@@ -78,10 +94,12 @@ export function ImagePicker({
       try {
         const res = await fetch("/api/upload", { method: "POST", body });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Upload failed.");
+        if (!res.ok) throw new Error(uploadError(locale, data.error));
         done.push(data.url);
       } catch (e) {
-        setMsg(`${file.name}: ${e instanceof Error ? e.message : "upload failed"}`);
+        setMsg(
+          `${file.name}: ${e instanceof Error ? e.message : t("picker.uploadFailed")}`
+        );
       }
     }
 
@@ -123,13 +141,16 @@ export function ImagePicker({
                 type="button"
                 onClick={() => set(paths.filter((_, idx) => idx !== i))}
                 className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-inverse text-inverse-fg"
-                aria-label={`Remove ${isVideo ? "video" : "image"} ${i + 1}`}
+                aria-label={t("picker.removeMedia", {
+                  kind: t(isVideo ? "picker.video" : "picker.image"),
+                  n: i + 1,
+                })}
               >
                 &times;
               </button>
               {paths.length === 1 && !isVideo ? (
                 <span className="label-xs absolute bottom-1 left-1 rounded bg-inverse px-1.5 py-0.5 text-inverse-fg">
-                  Main
+                  {t("picker.main")}
                 </span>
               ) : null}
             </li>
@@ -137,7 +158,7 @@ export function ImagePicker({
         </ul>
       ) : (
         <p className="mb-3 rounded-lg border border-dashed border-line px-3 py-4 text-center text-xs text-fg/65">
-          {isVideo ? "No video yet." : "No image yet."}
+          {t(isVideo ? "picker.noVideo" : "picker.noImage")}
         </p>
       )}
 
@@ -148,7 +169,9 @@ export function ImagePicker({
           disabled={busy}
           className="btn btn-primary h-9 px-4 text-[0.65rem]"
         >
-          {busy ? "Uploading..." : isVideo ? "Upload video" : "Upload from computer"}
+          {busy
+            ? t("picker.uploading")
+            : t(isVideo ? "picker.uploadVideo" : "picker.uploadComputer")}
         </button>
         {!single ? (
           <button
@@ -157,7 +180,7 @@ export function ImagePicker({
             disabled={paths.length === 0}
             className="btn btn-outline h-9 px-4 text-[0.65rem] disabled:opacity-60"
           >
-            Clear all
+            {t("picker.clearAll")}
           </button>
         ) : null}
       </div>
@@ -181,11 +204,9 @@ export function ImagePicker({
               addPath(urlDraft);
             }
           }}
-          placeholder={
-            isVideo
-              ? "Paste a video URL (.mp4 / .webm), then press Enter"
-              : "Paste an image URL or path, then press Enter"
-          }
+          placeholder={t(
+            isVideo ? "picker.urlVideoPlaceholder" : "picker.urlImagePlaceholder"
+          )}
           className="field font-mono text-xs"
         />
         <button
@@ -194,7 +215,7 @@ export function ImagePicker({
           disabled={!urlDraft.trim()}
           className="btn btn-outline h-10 shrink-0 px-4 text-[0.65rem] disabled:opacity-60"
         >
-          Add
+          {t("picker.add")}
         </button>
       </div>
 

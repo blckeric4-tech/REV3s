@@ -18,8 +18,20 @@ import {
   verifyCredentials,
 } from "@/lib/auth";
 import bcrypt from "bcryptjs";
+import type { TranslationKey } from "@/lib/i18n/en";
+import { asKey, type ActionState } from "./action-state";
 
-export type ActionState = { ok: boolean; message: string; errors?: Record<string, string> };
+export type { ActionState } from "./action-state";
+
+/** Shorthand: an action almost always returns a bare message and nothing else. */
+const fail = (messageKey: ActionState["messageKey"]): ActionState => ({
+  ok: false,
+  messageKey,
+});
+const done = (messageKey: ActionState["messageKey"]): ActionState => ({
+  ok: true,
+  messageKey,
+});
 
 /* ------------------------------- auth ------------------------------- */
 
@@ -28,12 +40,12 @@ export async function login(_prev: ActionState, formData: FormData): Promise<Act
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
-    return { ok: false, message: "Enter your email and password." };
+    return fail("adminLogin.enterBoth");
   }
 
   const user = await verifyCredentials(email, password);
   if (!user) {
-    return { ok: false, message: "Those credentials are not recognised." };
+    return fail("adminLogin.badCredentials");
   }
 
   await createSession(user.id);
@@ -45,11 +57,13 @@ export async function logout() {
   redirect("/admin/login");
 }
 
+/* The messages here are translation keys, resolved by the client — see
+   `./action-state.ts`. */
 const passwordSchema = z
   .string()
-  .min(10, "Use at least 10 characters.")
-  .regex(/[a-zA-Z]/, "Include a letter.")
-  .regex(/[0-9]/, "Include a number.");
+  .min(10, "error.passwordShort")
+  .regex(/[a-zA-Z]/, "error.passwordLetter")
+  .regex(/[0-9]/, "error.passwordNumber");
 
 export async function changePassword(
   _prev: ActionState,
@@ -63,14 +77,17 @@ export async function changePassword(
   const user = await assertAdmin();
 
   if (!(await bcrypt.compare(current, user.passwordHash))) {
-    return { ok: false, message: "Your current password is wrong." };
+    return fail("admin.wrongCurrentPassword");
   }
   if (next !== confirm) {
-    return { ok: false, message: "The new passwords do not match." };
+    return fail("admin.newPasswordMismatch");
   }
   const parsed = passwordSchema.safeParse(next);
   if (!parsed.success) {
-    return { ok: false, message: parsed.error.issues[0]?.message ?? "Weak password." };
+    const issue = parsed.error.issues[0];
+    const key = asKey(issue?.message ?? "error.weakPassword");
+    // Only the length rule interpolates; the other two are fixed sentences.
+    return { ok: false, messageKey: key, values: { min: 10 } };
   }
 
   await db.adminUser.update({
@@ -78,29 +95,36 @@ export async function changePassword(
     data: { passwordHash: await bcrypt.hash(next, 12) },
   });
 
-  return { ok: true, message: "Password updated." };
+  return done("success.passwordUpdated");
 }
 
 /* ----------------------------- products ----------------------------- */
 
 const productSchema = z.object({
-  name: z.string().trim().min(2, "Give the product a name."),
-  slug: z.string().trim().min(2, "Add a URL slug."),
+  name: z.string().trim().min(2, "adminForm.nameRequired"),
+  slug: z.string().trim().min(2, "adminForm.slugRequired"),
   tagline: z.string().trim().optional(),
-  description: z.string().trim().min(10, "Write a longer description."),
-  price: z.coerce.number().min(0, "Price cannot be negative."),
+  description: z.string().trim().min(10, "adminForm.descriptionRequired"),
+  price: z.coerce.number().min(0, "adminForm.priceNegative"),
   comparePrice: z.coerce.number().min(0).optional(),
-  category: z.string().trim().min(1, "Pick a category."),
+  category: z.string().trim().min(1, "adminForm.categoryRequired"),
   badge: z.string().trim().optional(),
-  image: z.string().trim().min(1, "Add a main image path."),
+  image: z.string().trim().min(1, "adminForm.imageRequired"),
   images: z.string().trim().optional(),
   onBodyImages: z.string().trim().optional(),
+  // French copy. Optional by design: a blank value stores NULL, which is what
+  // makes the storefront fall back to the English field above.
+  nameFr: z.string().trim().optional(),
+  taglineFr: z.string().trim().optional(),
+  descriptionFr: z.string().trim().optional(),
+  badgeFr: z.string().trim().optional(),
 });
 
 type VariantInput = {
   id?: string;
   size: string;
   color: string;
+  colorFr: string;
   colorHex: string;
   stock: number;
   sku: string;
@@ -116,6 +140,7 @@ function parseVariants(raw: FormDataEntryValue | null): VariantInput[] {
         id: typeof v.id === "string" && v.id ? v.id : undefined,
         size: String(v.size ?? "").trim(),
         color: String(v.color ?? "").trim(),
+        colorFr: String(v.colorFr ?? "").trim(),
         colorHex: String(v.colorHex ?? "#000000").trim(),
         stock: Math.max(0, Math.floor(Number(v.stock) || 0)),
         sku: String(v.sku ?? "").trim(),
@@ -145,15 +170,20 @@ export async function saveProduct(
     image: formData.get("image"),
     images: formData.get("images") ?? "",
     onBodyImages: formData.get("onBodyImages") ?? "",
+    nameFr: formData.get("nameFr") ?? "",
+    taglineFr: formData.get("taglineFr") ?? "",
+    descriptionFr: formData.get("descriptionFr") ?? "",
+    badgeFr: formData.get("badgeFr") ?? "",
   });
 
   if (!parsed.success) {
-    const errors: Record<string, string> = {};
+    // First failure per field wins, so the admin sees one message at a time.
+    const errors: NonNullable<ActionState["errors"]> = {};
     for (const issue of parsed.error.issues) {
-      const key = String(issue.path[0] ?? "form");
-      if (!errors[key]) errors[key] = issue.message;
+      const field = String(issue.path[0] ?? "form");
+      if (!errors[field]) errors[field] = asKey(issue.message);
     }
-    return { ok: false, message: "Please fix the highlighted fields.", errors };
+    return { ok: false, messageKey: "error.fixFields", errors };
   }
 
   const d = parsed.data;
@@ -170,10 +200,9 @@ export async function saveProduct(
       mirrorImageList(d.onBodyImages),
     ]);
   } catch (err) {
-    return {
-      ok: false,
-      message: err instanceof ImageStoreError ? err.message : "Could not process the images.",
-    };
+    return fail(
+      err instanceof ImageStoreError ? "admin.imageProcessFailed" : "admin.productSaveFailed"
+    );
   }
 
   const data = {
@@ -190,6 +219,13 @@ export async function saveProduct(
     onBodyImages: mirroredOnBody,
     featured: formData.get("featured") === "on",
     active: formData.get("active") === "on",
+    // An empty French box is stored as NULL rather than "", so the storefront
+    // fallback in `localizeProduct()` treats "cleared" and "never filled in"
+    // the same way.
+    nameFr: d.nameFr || null,
+    taglineFr: d.taglineFr || null,
+    descriptionFr: d.descriptionFr || null,
+    badgeFr: d.badgeFr || null,
   };
 
   try {
@@ -198,7 +234,7 @@ export async function saveProduct(
         where: { id },
         include: { variants: true },
       });
-      if (!existing) return { ok: false, message: "That product no longer exists." };
+      if (!existing) return fail("admin.productGone");
 
       await db.$transaction(async (tx) => {
         await tx.product.update({ where: { id }, data });
@@ -224,6 +260,7 @@ export async function saveProduct(
               data: {
                 size: v.size,
                 color: v.color,
+                colorFr: v.colorFr || null,
                 colorHex: v.colorHex,
                 sku: v.sku || old.sku,
                 // Never let stock drift below what has already been sold.
@@ -236,6 +273,7 @@ export async function saveProduct(
                 productId: id,
                 size: v.size,
                 color: v.color,
+                colorFr: v.colorFr || null,
                 colorHex: v.colorHex,
                 stock: v.stock,
                 sku:
@@ -259,6 +297,7 @@ export async function saveProduct(
             create: variants.map((v) => ({
               size: v.size,
               color: v.color,
+              colorFr: v.colorFr || null,
               colorHex: v.colorHex,
               stock: v.stock,
               sku:
@@ -277,19 +316,16 @@ export async function saveProduct(
       redirect(`/admin/products/${created.id}?saved=1`);
     }
   } catch (e) {
-    const message =
-      e instanceof Error && e.message.includes("Unique constraint")
-        ? "That slug or SKU is already used by another product."
-        : e instanceof Error
-          ? e.message
-          : "Could not save the product.";
-    return { ok: false, message };
+    if (e instanceof Error && e.message.includes("Unique constraint")) {
+      return fail("admin.duplicateSlug");
+    }
+    return fail("admin.productSaveFailed");
   }
 
   revalidatePath("/admin/products");
   revalidatePath("/shop");
   revalidatePath("/");
-  return { ok: true, message: "Product saved." };
+  return done("success.productSaved");
 }
 
 export async function deleteProduct(formData: FormData) {
@@ -352,18 +388,21 @@ export async function updateOrderStatus(formData: FormData) {
 /**
  * Run one image step. On failure record a warning and use the fallback so a
  * single unreachable URL cannot block the rest of the settings save.
+ *
+ * The warning is a translation key, not a sentence: it is passed through the
+ * query string to the settings page and rendered by the admin's own translator,
+ * so it cannot be baked into English here.
  */
 async function settle<T>(
   run: () => Promise<T>,
-  label: string,
+  label: TranslationKey,
   fallback: T,
-  warnings: string[]
+  warnings: TranslationKey[]
 ): Promise<T> {
   try {
     return await run();
-  } catch (err) {
-    const why = err instanceof ImageStoreError ? err.message : "could not be processed";
-    warnings.push(`${label}: ${why}`);
+  } catch {
+    warnings.push(label);
     return fallback;
   }
 }
@@ -374,8 +413,8 @@ async function settle<T>(
  */
 async function settleList(
   raw: string,
-  label: string,
-  warnings: string[]
+  label: TranslationKey,
+  warnings: TranslationKey[]
 ): Promise<string[]> {
   const items = raw
     .split(/[\n,]/)
@@ -398,8 +437,8 @@ async function settleList(
       kept.push(path);
       continue;
     }
-    const why = err instanceof ImageStoreError ? err.message : "could not be processed";
-    warnings.push(`${label}: ${why}`);
+    void err;
+    warnings.push(label);
   }
   return kept;
 }
@@ -430,35 +469,40 @@ export async function saveSettings(formData: FormData) {
     return /^#[0-9a-fA-F]{3,8}$/.test(v) ? v : fallback;
   };
 
-  const warnings: string[] = [];
+  // A French box the admin left empty stores NULL, not "". `localizeSettings()`
+  // falls back on both, but NULL keeps the column honest: nothing entered means
+  // nothing stored, which is easier to reason about when debugging in Studio.
+  const fr = (name: string) => text(name) || null;
+
+  const warnings: TranslationKey[] = [];
 
   // Any pasted media URL is mirrored into public/uploads so the storefront
   // never has to render an unconfigured remote host.
   const [heroImage, storyImage, gallery, poster, heroVideo] = await Promise.all([
     settle(
       () => mirrorImageValue(text("heroImage") || "/images/hero.svg"),
-      "Hero image",
+      "adminSet.warnHeroImage",
       "/images/hero.svg",
       warnings
     ),
     settle(
       () => mirrorImageValue(text("storyImage") || "/images/story.svg"),
-      "Story image",
+      "adminSet.warnStoryImage",
       "/images/story.svg",
       warnings
     ),
-    settleList(text("galleryImages"), "Scrolling strip image", warnings),
+    settleList(text("galleryImages"), "adminSet.warnGalleryImage", warnings),
     // The poster is optional: an empty field must stay empty, not throw.
     settle(
       () => (text("videoPoster") ? mirrorImageValue(text("videoPoster")) : Promise.resolve("")),
-      "Video poster",
+      "adminSet.warnVideoPoster",
       "",
       warnings
     ),
     // Same for the hero video — an empty field simply means "no video".
     settle(
       () => (text("heroVideo") ? mirrorVideoValue(text("heroVideo")) : Promise.resolve("")),
-      "Hero video",
+      "adminSet.warnHeroVideo",
       "",
       warnings
     ),
@@ -530,6 +574,29 @@ export async function saveSettings(formData: FormData) {
     shippingFlatCents: Math.round(num("shippingFlat", 300000)),
     freeShippingOverCents: Math.round(num("freeShippingOver", 5000000)),
     lowStockThreshold: Math.round(num("lowStockThreshold", 5)),
+    // ── French overrides ──
+    // Only prose has a French column. Brand marks, contact details, URLs,
+    // colours, media and commerce rules are shared across languages.
+    taglineFr: fr("taglineFr"),
+    announcementTextFr: fr("announcementTextFr"),
+    whatsappMessageFr: fr("whatsappMessageFr"),
+    heroKickerFr: fr("heroKickerFr"),
+    heroTitleFr: fr("heroTitleFr"),
+    heroBodyFr: fr("heroBodyFr"),
+    heroCtaTextFr: fr("heroCtaTextFr"),
+    heroSecondaryTextFr: fr("heroSecondaryTextFr"),
+    storyKickerFr: fr("storyKickerFr"),
+    storyTitleFr: fr("storyTitleFr"),
+    storyBodyFr: fr("storyBodyFr"),
+    shopTitleFr: fr("shopTitleFr"),
+    shopDescriptionFr: fr("shopDescriptionFr"),
+    newsletterTitleFr: fr("newsletterTitleFr"),
+    newsletterBodyFr: fr("newsletterBodyFr"),
+    footerAboutFr: fr("footerAboutFr"),
+    // These two are ordered lists that line up with `valueProps` and
+    // `categories`, so they go through `list()` and fall back per index.
+    valuePropsFr: list("valuePropsFr"),
+    categoriesFr: list("categoriesFr"),
   };
 
   await db.siteSettings.upsert({

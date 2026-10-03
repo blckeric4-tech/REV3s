@@ -5,37 +5,40 @@ import { useActionState, useState } from "react";
 import { customerSignIn, customerSignUp } from "@/app/account/actions";
 import { initialAuthState } from "@/app/account/state";
 import { CUSTOMER_PASSWORD_MIN } from "@/lib/customer-auth-constants";
+import { makeTranslator, type Locale } from "@/lib/i18n/translate";
+import type { TranslationKey } from "@/lib/i18n/en";
 
 type Mode = "sign-in" | "sign-up";
 
-const COPY: Record<Mode, { kicker: string; title: string; body: string; cta: string; pending: string }> = {
+/** Keys rather than sentences, so each mode stays a lookup instead of a copy. */
+const COPY: Record<
+  Mode,
+  { kicker: TranslationKey; title: TranslationKey; body: TranslationKey; cta: TranslationKey; pending: TranslationKey }
+> = {
   "sign-in": {
-    kicker: "Welcome back",
-    title: "Sign in",
-    body: "Sign in to follow your orders and check out in one tap.",
-    cta: "Sign in",
-    pending: "Signing in…",
+    kicker: "account.welcomeBack",
+    title: "account.signInTitle",
+    body: "account.signInKickerBody",
+    cta: "account.signInButton",
+    pending: "account.signingIn",
   },
   "sign-up": {
-    kicker: "Create an account",
-    title: "Join RAV3S",
-    body: `One account for your orders, your delivery details and first access to every drop. Minimum ${CUSTOMER_PASSWORD_MIN} characters.`,
-    cta: "Create account",
-    pending: "Creating account…",
+    kicker: "account.createAccountKicker",
+    title: "account.joinRav3s",
+    body: "account.signUpKickerBody",
+    cta: "account.signUpButton",
+    pending: "account.creatingAccount",
   },
 };
 
-const PERKS: Record<Mode, string[]> = {
-  "sign-in": [
-    "Every order in one place, with live status",
-    "Your details saved — no retyping at checkout",
-    "Checkout that takes one tap",
-  ],
-  "sign-up": [
-    "Track every order from payment to delivery",
-    "Saved details for a one-tap checkout",
-    "First access to new drops and restocks",
-  ],
+const HERO_TITLE: Record<Mode, TranslationKey> = {
+  "sign-in": "account.signInHeroTitle",
+  "sign-up": "account.signUpHeroTitle",
+};
+
+const PERKS: Record<Mode, TranslationKey[]> = {
+  "sign-in": ["account.perkSignIn1", "account.perkSignIn2", "account.perkSignIn3"],
+  "sign-up": ["account.perkSignUp1", "account.perkSignUp2", "account.perkSignUp3"],
 };
 
 /* ── Password field with a show/hide toggle ─────────────────────────── */
@@ -46,7 +49,8 @@ function PasswordField({
   placeholder,
   minLength,
   invalid,
-  error,
+  errorText,
+  locale,
 }: {
   id: string;
   name: string;
@@ -54,20 +58,23 @@ function PasswordField({
   placeholder: string;
   minLength?: number;
   invalid?: boolean;
-  error?: string;
+  /** Already translated by the caller, so this stays a dumb presentational field. */
+  errorText?: string;
+  locale: Locale;
 }) {
   const [shown, setShown] = useState(false);
+  const t = makeTranslator(locale);
 
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
         <label htmlFor={id} className="label-xs text-haze">
-          Password
+          {t("account.password")}
         </label>
         {name === "password" && autoComplete === "current-password" ? (
           /* Wired up when password reset lands — see HANDOFF.md. */
-          <span className="text-xs text-haze" title="Coming soon">
-            Forgot password?
+          <span className="text-xs text-haze" title={t("account.comingSoon")}>
+            {t("account.forgotPassword")}
           </span>
         ) : null}
       </div>
@@ -82,13 +89,13 @@ function PasswordField({
           autoComplete={autoComplete}
           placeholder={placeholder}
           aria-invalid={Boolean(invalid)}
-          aria-describedby={error ? `${id}-error` : undefined}
+          aria-describedby={errorText ? `${id}-error` : undefined}
           className="field py-3 pr-11"
         />
         <button
           type="button"
           onClick={() => setShown((v) => !v)}
-          aria-label={shown ? "Hide password" : "Show password"}
+          aria-label={shown ? t("account.hidePassword") : t("account.showPassword")}
           aria-pressed={shown}
           className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-haze transition-colors hover:text-fg"
         >
@@ -105,9 +112,9 @@ function PasswordField({
         </button>
       </div>
 
-      {error ? (
+      {errorText ? (
         <p id={`${id}-error`} className="mt-1.5 text-xs text-fg" role="alert">
-          {error}
+          {errorText}
         </p>
       ) : null}
     </div>
@@ -118,16 +125,19 @@ export function AuthForm({
   mode,
   next,
   defaultEmail = "",
+  locale,
 }: {
   mode: Mode;
   /** Where to go after a successful sign in/up. */
   next?: string;
   defaultEmail?: string;
+  locale: Locale;
 }) {
   const isSignUp = mode === "sign-up";
   const action = isSignUp ? customerSignUp : customerSignIn;
   const [state, formAction, pending] = useActionState(action, initialAuthState);
   const copy = COPY[mode];
+  const t = makeTranslator(locale);
   const errors = state.errors ?? {};
 
   return (
@@ -139,9 +149,9 @@ export function AuthForm({
             RAV3S
             <span className="ml-1 inline-block h-2 w-2 rounded-full align-top bg-inverse-fg" />
           </Link>
-          <p className="label-xs mt-10 text-inverse-fg/70">{copy.kicker}</p>
+          <p className="label-xs mt-10 text-inverse-fg/70">{t(copy.kicker)}</p>
           <p className="mt-4 font-display text-4xl uppercase leading-[0.95]">
-            {isSignUp ? "Your account, your history." : "Pick up where you left off."}
+            {t(HERO_TITLE[mode])}
           </p>
         </div>
 
@@ -151,7 +161,7 @@ export function AuthForm({
               <span aria-hidden className="mt-0.5 text-xs">
                 ✦
               </span>
-              {perk}
+              {t(perk)}
             </li>
           ))}
         </ul>
@@ -164,13 +174,15 @@ export function AuthForm({
           className="inline-flex items-center text-xl font-black tracking-[-0.06em]"
         >
           RAV3S
-          <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full align-top bg-fg" />
+          <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full align-top text-fg" />
         </Link>
       </div>
 
       <div className="mt-8 lg:mt-0">
-        <h1 className="text-2xl font-black uppercase md:text-3xl">{copy.title}</h1>
-        <p className="mt-3 text-sm leading-relaxed text-fg/70">{copy.body}</p>
+        <h1 className="text-2xl font-black uppercase md:text-3xl">{t(copy.title)}</h1>
+        <p className="mt-3 text-sm leading-relaxed text-fg/70">
+          {t(copy.body, { min: CUSTOMER_PASSWORD_MIN })}
+        </p>
 
         <form action={formAction} className="mt-8 space-y-5">
           <input type="hidden" name="next" value={next ?? ""} />
@@ -178,7 +190,7 @@ export function AuthForm({
           {isSignUp ? (
             <div>
               <label htmlFor="name" className="label-xs text-haze">
-                Full name
+                {t("account.fullName")}
               </label>
               <input
                 id="name"
@@ -186,14 +198,14 @@ export function AuthForm({
                 required
                 minLength={2}
                 autoComplete="name"
-                placeholder="As it should appear on your parcel"
+                placeholder={t("account.namePlaceholder")}
                 aria-invalid={Boolean(errors.name)}
                 aria-describedby={errors.name ? "name-error" : undefined}
                 className="field mt-2 py-3"
               />
               {errors.name ? (
                 <p id="name-error" className="mt-1.5 text-xs text-fg" role="alert">
-                  {errors.name}
+                  {t(errors.name)}
                 </p>
               ) : null}
             </div>
@@ -201,7 +213,7 @@ export function AuthForm({
 
           <div>
             <label htmlFor="email" className="label-xs text-haze">
-              Email
+              {t("account.email")}
             </label>
             <input
               id="email"
@@ -210,14 +222,14 @@ export function AuthForm({
               required
               autoComplete="email"
               defaultValue={defaultEmail}
-              placeholder="you@email.com"
+              placeholder={t("account.emailPlaceholder")}
               aria-invalid={Boolean(errors.email)}
               aria-describedby={errors.email ? "email-error" : undefined}
               className="field mt-2 py-3"
             />
             {errors.email ? (
               <p id="email-error" className="mt-1.5 text-xs text-fg" role="alert">
-                {errors.email}
+                {t(errors.email)}
               </p>
             ) : null}
           </div>
@@ -227,11 +239,14 @@ export function AuthForm({
             name="password"
             autoComplete={isSignUp ? "new-password" : "current-password"}
             placeholder={
-              isSignUp ? `At least ${CUSTOMER_PASSWORD_MIN} characters` : "Your password"
+              isSignUp
+                ? t("account.passwordPlaceholderSignUp", { min: CUSTOMER_PASSWORD_MIN })
+                : t("account.passwordPlaceholderSignIn")
             }
             minLength={CUSTOMER_PASSWORD_MIN}
             invalid={Boolean(errors.password)}
-            error={errors.password}
+            errorText={errors.password ? t(errors.password) : undefined}
+            locale={locale}
           />
 
           {isSignUp ? (
@@ -239,19 +254,20 @@ export function AuthForm({
               id="confirm"
               name="confirm"
               autoComplete="new-password"
-              placeholder="Type it once more"
+              placeholder={t("account.confirmPlaceholder")}
               minLength={CUSTOMER_PASSWORD_MIN}
               invalid={Boolean(errors.confirm)}
-              error={errors.confirm}
+              errorText={errors.confirm ? t(errors.confirm) : undefined}
+              locale={locale}
             />
           ) : null}
 
-          {state.message ? (
+          {state.messageKey ? (
             <p
               className="rounded-lg border border-line bg-surface-2 px-4 py-3 text-xs leading-relaxed text-fg"
               role="alert"
             >
-              {state.message}
+              {t(state.messageKey, state.values)}
             </p>
           ) : null}
 
@@ -260,12 +276,12 @@ export function AuthForm({
             disabled={pending}
             className="btn btn-primary w-full py-4 text-xs"
           >
-            {pending ? copy.pending : copy.cta}
+            {pending ? t(copy.pending) : t(copy.cta)}
           </button>
         </form>
 
         <p className="mt-7 border-t border-line pt-6 text-center text-sm text-fg/70">
-          {isSignUp ? "Already have an account? " : "No account yet? "}
+          {isSignUp ? t("account.alreadyHave") : t("account.noAccountYet")}{" "}
           <Link
             href={
               isSignUp
@@ -274,13 +290,13 @@ export function AuthForm({
             }
             className="font-semibold text-fg underline underline-offset-4"
           >
-            {isSignUp ? "Sign in" : "Create one"}
+            {isSignUp ? t("account.signInTitle") : t("account.createOne")}
           </Link>
         </p>
 
         <p className="mt-4 text-center text-xs text-haze">
           <Link href="/" className="underline underline-offset-4 hover:text-fg">
-            Continue as a guest
+            {t("account.continueGuest")}
           </Link>
         </p>
       </div>

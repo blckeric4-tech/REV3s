@@ -1,11 +1,16 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/prisma";
 import { formatMoney } from "@/lib/money";
 import { updateOrderStatus } from "@/app/admin/actions";
+import { getTranslator, statusKey } from "@/lib/i18n";
 
-export const metadata = { title: "Order" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t("admin.metaOrder") };
+}
 export const dynamic = "force-dynamic";
 
 const STATUSES = ["PENDING", "PAID", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED"];
@@ -16,6 +21,7 @@ export default async function AdminOrderPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const { t, tag } = await getTranslator();
 
   const order = await db.order.findUnique({
     where: { id },
@@ -27,17 +33,17 @@ export default async function AdminOrderPage({
     <div className="space-y-8">
       <div>
         <Link href="/admin/orders" className="label-xs text-fg/65 hover:text-fg">
-          &larr; Orders
+          &larr; {t("adminOrder.backToOrders")}
         </Link>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <h1 className="font-mono text-2xl font-black md:text-3xl">{order.orderNumber}</h1>
           <span className="label-xs rounded-full bg-inverse px-3 py-1.5 text-inverse-fg">
-            {order.status}
+            {t(statusKey(order.status) ?? "status.PENDING")}
           </span>
         </div>
         <p className="mt-2 text-xs text-fg/65">
-          Placed{" "}
-          {new Date(order.createdAt).toLocaleString("en-GB", {
+          {t("adminOrder.placedOn")}{" "}
+          {new Date(order.createdAt).toLocaleString(tag, {
             day: "2-digit",
             month: "short",
             year: "numeric",
@@ -50,7 +56,7 @@ export default async function AdminOrderPage({
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="space-y-6">
           <section className="card p-5">
-            <h2 className="label-xs text-fg/65">Items</h2>
+            <h2 className="label-xs text-fg/65">{t("adminOrder.items")}</h2>
             <ul className="mt-4 divide-y divide-line">
               {order.items.map((item) => (
                 <li key={item.id} className="flex items-center gap-4 py-3">
@@ -70,7 +76,7 @@ export default async function AdminOrderPage({
                     </p>
                   </div>
                   <p className="shrink-0 text-sm font-semibold">
-                    {formatMoney(item.unitPriceCents * item.quantity, order.currency)}
+                    {formatMoney(item.unitPriceCents * item.quantity, order.currency, tag)}
                   </p>
                 </li>
               ))}
@@ -78,27 +84,27 @@ export default async function AdminOrderPage({
 
             <dl className="mt-5 space-y-2 border-t border-line pt-4 text-sm">
               <div className="flex items-baseline justify-between gap-4">
-                <dt className="shrink-0 text-fg/70">Subtotal</dt>
-                <dd>{formatMoney(order.subtotalCents, order.currency)}</dd>
+                <dt className="shrink-0 text-fg/70">{t("admin.subtotal")}</dt>
+                <dd>{formatMoney(order.subtotalCents, order.currency, tag)}</dd>
               </div>
               <div className="flex items-baseline justify-between gap-4">
-                <dt className="shrink-0 text-fg/70">Shipping</dt>
+                <dt className="shrink-0 text-fg/70">{t("admin.shipping")}</dt>
                 <dd>
                   {order.shippingCents === 0
-                    ? "Free"
-                    : formatMoney(order.shippingCents, order.currency)}
+                    ? t("adminOrder.shippingFree")
+                    : formatMoney(order.shippingCents, order.currency, tag)}
                 </dd>
               </div>
               <div className="flex items-baseline justify-between gap-4 border-t border-line pt-2 text-base font-bold">
-                <dt className="shrink-0">Total</dt>
-                <dd>{formatMoney(order.totalCents, order.currency)}</dd>
+                <dt className="shrink-0">{t("admin.total")}</dt>
+                <dd>{formatMoney(order.totalCents, order.currency, tag)}</dd>
               </div>
             </dl>
           </section>
 
           {order.notes ? (
             <section className="card p-5">
-              <h2 className="label-xs text-fg/65">Customer note</h2>
+              <h2 className="label-xs text-fg/65">{t("adminOrder.customerNote")}</h2>
               <p className="mt-2 text-sm text-fg/75">{order.notes}</p>
             </section>
           ) : null}
@@ -106,39 +112,41 @@ export default async function AdminOrderPage({
 
         <div className="space-y-6">
           <section className="card p-5">
-            <h2 className="label-xs text-fg/65">Update status</h2>
+            <h2 className="label-xs text-fg/65">{t("adminOrder.updateStatus")}</h2>
             <form action={updateOrderStatus} className="mt-4 space-y-3">
               <input type="hidden" name="id" value={order.id} />
               <select name="status" defaultValue={order.status} className="field">
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s}
+                    {t(statusKey(s) ?? "status.PENDING")}
                   </option>
                 ))}
               </select>
               <button type="submit" className="btn btn-primary w-full">
-                Save status
+                {t("adminOrder.saveStatus")}
               </button>
             </form>
           </section>
 
           <section className="card p-5">
-            <h2 className="label-xs text-fg/65">Customer</h2>
+            <h2 className="label-xs text-fg/65">{t("adminOrder.customer")}</h2>
             <p className="mt-3 text-sm font-semibold">{order.fullName}</p>
             <p className="text-sm text-fg/70">{order.email}</p>
             {order.phone ? <p className="mt-1 text-sm text-fg/70">{order.phone}</p> : null}
             {order.email ? (
               <a
-                href={`mailto:${order.email}?subject=Your RAV3S order ${order.orderNumber}`}
+                href={`mailto:${order.email}?subject=${encodeURIComponent(
+                  t("adminOrder.emailSubject", { order: order.orderNumber })
+                )}`}
                 className="label-xs mt-4 block border border-line px-3 py-2.5 text-center hover:border-fg"
               >
-                Email customer
+                {t("adminOrder.emailCustomer")}
               </a>
             ) : null}
           </section>
 
           <section className="card p-5">
-            <h2 className="label-xs text-fg/65">Shipping address</h2>
+            <h2 className="label-xs text-fg/65">{t("adminOrder.shippingAddress")}</h2>
             <p className="mt-3 text-sm text-fg/75">{order.fullName}</p>
             <p className="text-sm text-fg/75">{order.addressLine1}</p>
             {order.addressLine2 ? <p className="text-sm text-fg/75">{order.addressLine2}</p> : null}
@@ -149,13 +157,13 @@ export default async function AdminOrderPage({
           </section>
 
           <section className="card p-5">
-            <h2 className="label-xs text-fg/65">Payment</h2>
+            <h2 className="label-xs text-fg/65">{t("adminOrder.payment")}</h2>
             {order.stripePaymentIntentId ? (
               <p className="mt-3 break-all font-mono text-[11px] text-fg/70">
                 {order.stripePaymentIntentId}
               </p>
             ) : (
-              <p className="mt-3 text-sm text-fg/65">Not paid yet</p>
+              <p className="mt-3 text-sm text-fg/65">{t("adminOrder.notPaid")}</p>
             )}
           </section>
         </div>

@@ -1,9 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import type { CustomerSession } from "@/lib/customer-auth";
+import { getTranslator } from "@/lib/i18n";
 import { AccountNav } from "@/components/account/account-nav";
 import { Avatar } from "@/components/account/avatar";
 
-export const metadata = { title: "My account" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t("account.myAccount") };
+}
 
 export type AccountOrderSummary = {
   orderNumber: string;
@@ -14,16 +19,7 @@ export type AccountOrderSummary = {
   createdAt: Date;
 };
 
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-function formatMonthYear(date: Date) {
-  return `${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
-}
-
-export function AccountShell({
+export async function AccountShell({
   customer,
   memberSince,
   active,
@@ -36,6 +32,16 @@ export function AccountShell({
   active: "overview" | "orders" | "details";
   children: React.ReactNode;
 }) {
+  const { t, locale } = await getTranslator();
+
+  /* `timeZone: "UTC"` because the stored date is a UTC midnight; without it a
+     shopper west of Greenwich would see the previous month. */
+  const memberSinceLabel = memberSince.toLocaleDateString(locale, {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+
   return (
     <div className="container-rav3s py-12 md:py-16">
       {/* ── Identity header ─────────────────────────────────────────── */}
@@ -49,7 +55,7 @@ export function AccountShell({
             priority
           />
           <div className="min-w-0">
-            <p className="label-xs text-haze">Your account</p>
+            <p className="label-xs text-haze">{t("account.yourAccount")}</p>
             <h1 className="mt-1.5 truncate text-2xl font-black uppercase md:text-3xl">
               {customer.name}
             </h1>
@@ -59,13 +65,13 @@ export function AccountShell({
 
         <dl className="flex items-center gap-6 sm:gap-8">
           <div>
-            <dt className="label-xs text-haze">Member since</dt>
-            <dd className="mt-1.5 text-sm font-semibold">{formatMonthYear(memberSince)}</dd>
+            <dt className="label-xs text-haze">{t("account.memberSince")}</dt>
+            <dd className="mt-1.5 text-sm font-semibold">{memberSinceLabel}</dd>
           </div>
         </dl>
       </header>
 
-      <AccountNav active={active} />
+      <AccountNav active={active} locale={locale} />
       {children}
     </div>
   );

@@ -31,22 +31,22 @@ export async function POST(request: Request) {
   try {
     await assertAdmin();
   } catch {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    return NextResponse.json({ error: "upload.unauthorized" }, { status: 401 });
   }
 
   let form: FormData;
   try {
     form = await request.formData();
   } catch {
-    return NextResponse.json({ error: "Expected a file upload." }, { status: 400 });
+    return NextResponse.json({ error: "upload.expectedFile" }, { status: 400 });
   }
 
   const file = form.get("file");
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "No file was provided." }, { status: 400 });
+    return NextResponse.json({ error: "upload.noFile" }, { status: 400 });
   }
   if (file.size === 0) {
-    return NextResponse.json({ error: "That file is empty." }, { status: 400 });
+    return NextResponse.json({ error: "upload.emptyFile" }, { status: 400 });
   }
 
   const isVideo = Boolean(VIDEO_EXT_BY_TYPE[file.type]);
@@ -55,8 +55,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: isVideo
-          ? "That video is larger than 40 MB. Please compress it first."
-          : "That image is larger than 6 MB. Please compress it first.",
+          ? "upload.videoTooLarge"
+          : "upload.imageTooLarge",
       },
       { status: 413 }
     );
@@ -67,8 +67,8 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error: isVideo
-          ? "Unsupported video type. Use MP4, WebM, MOV or OGG."
-          : "Unsupported file type. Use JPEG, PNG, WebP, AVIF or GIF.",
+          ? "upload.badVideoType"
+          : "upload.badImageType",
       },
       { status: 415 }
     );
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ url });
   } catch {
     return NextResponse.json(
-      { error: "Could not save the file. Check the folder permissions." },
+      { error: "upload.saveFailed" },
       { status: 500 }
     );
   }

@@ -1,10 +1,12 @@
 import Link from "next/link";
-import type { Settings } from "@/lib/settings";
-import { getCategories } from "@/lib/settings";
+import type { LocalizedSettings } from "@/lib/settings";
+import { getLocalizedCategories } from "@/lib/settings";
 import { whatsappLink, phoneHref } from "@/lib/contact";
+import { getTranslator } from "@/lib/i18n";
 
-export async function SiteFooter({ settings }: { settings: Settings }) {
-  const categories = await getCategories();
+export async function SiteFooter({ settings }: { settings: LocalizedSettings }) {
+  const [{ locale, t }] = await Promise.all([getTranslator()]);
+  const categories = await getLocalizedCategories(locale);
   const year = new Date().getFullYear();
 
   return (
@@ -33,7 +35,7 @@ export async function SiteFooter({ settings }: { settings: Settings }) {
               ) : null}
               {settings.phoneNumber ? (
                 <a href={phoneHref(settings.phoneNumber)} className="btn btn-inverse-outline px-5 py-3">
-                  Call us
+                  {t("footer.callUs")}
                 </a>
               ) : null}
             </div>
@@ -73,20 +75,20 @@ export async function SiteFooter({ settings }: { settings: Settings }) {
           </div>
 
           <div className="md:col-span-2">
-            <p className="label-xs text-inverse-fg/70">Shop</p>
+            <p className="label-xs text-inverse-fg/70">{t("footer.shop")}</p>
             <ul className="mt-4 space-y-2.5">
               <li>
                 <Link href="/shop" className="text-sm text-inverse-fg/85 hover:text-inverse-fg">
-                  All products
+                  {t("footer.allProducts")}
                 </Link>
               </li>
               {categories.slice(0, 5).map((c) => (
-                <li key={c}>
+                <li key={c.key}>
                   <Link
-                    href={`/shop?category=${encodeURIComponent(c)}`}
+                    href={`/shop?category=${encodeURIComponent(c.key)}`}
                     className="text-sm text-inverse-fg/85 hover:text-inverse-fg"
                   >
-                    {c}
+                    {c.label}
                   </Link>
                 </li>
               ))}
@@ -94,14 +96,16 @@ export async function SiteFooter({ settings }: { settings: Settings }) {
           </div>
 
           <div className="md:col-span-2">
-            <p className="label-xs text-inverse-fg/70">Help</p>
+            <p className="label-xs text-inverse-fg/70">{t("footer.help")}</p>
             <ul className="mt-4 space-y-2.5">
-              {[
-                ["/about", "About RAV3S"],
-                ["/contact", "Contact"],
-                ["/shipping", "Delivery & returns"],
-                ["/size-guide", "Size guide"],
-              ].map(([href, label]) => (
+              {(
+                [
+                  ["/about", t("footer.about")],
+                  ["/contact", t("nav.contact")],
+                  ["/shipping", t("footer.deliveryReturns")],
+                  ["/size-guide", t("nav.sizeGuide")],
+                ] as const
+              ).map(([href, label]) => (
                 <li key={href}>
                   <Link href={href} className="text-sm text-inverse-fg/85 hover:text-inverse-fg">
                     {label}
@@ -112,7 +116,7 @@ export async function SiteFooter({ settings }: { settings: Settings }) {
           </div>
 
           <div className="md:col-span-4">
-            <p className="label-xs text-inverse-fg/70">Contact</p>
+            <p className="label-xs text-inverse-fg/70">{t("footer.contact")}</p>
             <ul className="mt-4 space-y-2.5 text-sm text-inverse-fg/85">
               {settings.whatsappNumber ? (
                 <li>
@@ -150,14 +154,14 @@ export async function SiteFooter({ settings }: { settings: Settings }) {
             </ul>
 
             <p className="mt-6 text-xs leading-relaxed text-inverse-fg/70">
-              Pay with MTN MoMo, Airtel Money, Tigo Cash or card. Delivery across Kigali.
+              {t("footer.paymentNote")}
             </p>
           </div>
         </div>
 
         <div className="mt-14 flex flex-col gap-3 border-t border-inverse-fg/20 pt-6 text-xs text-inverse-fg/70 md:flex-row md:items-center md:justify-between">
           <p>
-            &copy; {year} {settings.siteName}. All rights reserved.
+            &copy; {year} {settings.siteName}. {t("footer.rights")}
           </p>
           <p className="label-xs">{settings.mapAddress || settings.footerAddress}</p>
         </div>

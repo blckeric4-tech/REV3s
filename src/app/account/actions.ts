@@ -13,8 +13,16 @@ import {
   verifyCustomerCredentials,
 } from "@/lib/customer-auth";
 import type { AuthState } from "./state";
+import type { TranslationKey } from "@/lib/i18n/en";
 
 export type { AuthState } from "./state";
+
+/** Shorthand: an action almost always returns a bare message and nothing else. */
+const fail = (messageKey: TranslationKey, next?: string): AuthState => ({
+  ok: false,
+  messageKey,
+  next,
+});
 
 /** Only ever redirect to a path on this site — never to an absolute URL. */
 function safeNext(raw: FormDataEntryValue | null, fallback: string) {
@@ -33,23 +41,33 @@ export async function customerSignUp(
   const confirm = String(formData.get("confirm") ?? "");
   const next = safeNext(formData.get("next"), "/account");
 
-  const errors: Record<string, string> = {};
-  if (!name.trim()) errors.name = "Enter your name.";
-  if (!email.trim()) errors.email = "Enter your email address.";
-  if (!password) errors.password = "Choose a password.";
-  if (password && confirm !== password) errors.confirm = "The passwords do not match.";
+  const errors: Record<string, TranslationKey> = {};
+  if (!name.trim()) errors.name = "error.enterName";
+  if (!email.trim()) errors.email = "error.enterEmail";
+  if (!password) errors.password = "error.choosePassword";
+  if (password && confirm !== password) errors.confirm = "error.passwordMismatch";
   if (Object.keys(errors).length > 0) {
-    return { ok: false, message: "Please fix the highlighted fields.", errors, next };
+    return {
+      ok: false,
+      messageKey: "error.fixFields",
+      errors,
+      next,
+    };
   }
 
   let result;
   try {
     result = await registerCustomer(name, email, password);
   } catch {
-    return { ok: false, message: "Could not create the account. Please try again.", next };
+    return fail("error.createAccountFailed", next);
   }
-  if ("error" in result) {
-    return { ok: false, message: result.error, next };
+  if ("errorKey" in result) {
+    return {
+      ok: false,
+      messageKey: result.errorKey,
+      values: result.errorValues,
+      next,
+    };
   }
 
   await createCustomerSession(result.customer);
@@ -67,16 +85,12 @@ export async function customerSignIn(
   const next = safeNext(formData.get("next"), "/account");
 
   if (!email.trim() || !password) {
-    return { ok: false, message: "Enter your email address and password.", next };
+    return fail("error.emailAndPassword", next);
   }
 
   const customer = await verifyCustomerCredentials(email, password);
   if (!customer) {
-    return {
-      ok: false,
-      message: "That email and password combination is not recognised.",
-      next,
-    };
+    return fail("error.badCredentials", next);
   }
 
   await createCustomerSession(customer);
@@ -97,14 +111,14 @@ export async function customerUpdateName(
   formData: FormData
 ): Promise<AuthState> {
   const customer = await getCustomer();
-  if (!customer) return { ok: false, message: "Please sign in again." };
+  if (!customer) return fail("error.signInAgain");
 
   const name = String(formData.get("name") ?? "").trim().replace(/\s+/g, " ");
   if (name.length < 2) {
     return {
       ok: false,
-      message: "Please fix the highlighted fields.",
-      errors: { name: "Enter your name." },
+      messageKey: "error.fixFields",
+      errors: { name: "error.enterName" },
     };
   }
 
@@ -112,7 +126,7 @@ export async function customerUpdateName(
 
   revalidatePath("/", "layout");
   revalidatePath("/account");
-  return { ok: true, message: "Your details have been saved." };
+  return { ok: true, messageKey: "success.detailsSaved" };
 }
 
 /* ── Profile photo ──────────────────────────────────────────────────── */
@@ -158,34 +172,34 @@ export async function customerUpdateAvatar(
   formData: FormData
 ): Promise<AuthState> {
   const customer = await getCustomer();
-  if (!customer) return { ok: false, message: "Please sign in again." };
+  if (!customer) return fail("error.signInAgain");
 
   const file = formData.get("avatar");
   if (!(file instanceof File) || file.size === 0) {
-    return { ok: false, message: "Choose a photo to upload." };
+    return fail("error.choosePhoto");
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
 
   if (bytes.length > MAX_AVATAR_BYTES) {
-    return { ok: false, message: "That photo is larger than 4 MB. Please choose a smaller one." };
+    return fail("error.photoTooLarge");
   }
 
   const sniffed = sniffImage(bytes);
   if (!sniffed || !AVATAR_TYPES[file.type]) {
-    return { ok: false, message: "Use a JPEG, PNG, WebP or AVIF photo." };
+    return fail("error.photoType");
   }
 
   try {
     const url = await storeImage(bytes, sniffed);
     await db.customer.update({ where: { id: customer.id }, data: { avatarUrl: url } });
   } catch {
-    return { ok: false, message: "Could not save that photo. Please try another one." };
+    return fail("error.photoSaveFailed");
   }
 
   revalidatePath("/", "layout");
   revalidatePath("/account", "layout");
-  return { ok: true, message: "Your profile photo has been updated." };
+  return { ok: true, messageKey: "success.photoUpdated" };
 }
 
 /**
@@ -194,11 +208,11 @@ export async function customerUpdateAvatar(
  */
 export async function customerRemoveAvatar(): Promise<AuthState> {
   const customer = await getCustomer();
-  if (!customer) return { ok: false, message: "Please sign in again." };
+  if (!customer) return fail("error.signInAgain");
 
   await db.customer.update({ where: { id: customer.id }, data: { avatarUrl: null } });
 
   revalidatePath("/", "layout");
   revalidatePath("/account", "layout");
-  return { ok: true, message: "Your profile photo has been removed." };
+  return { ok: true, messageKey: "success.photoRemoved" };
 }

@@ -1,21 +1,43 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { db } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/customer-auth";
 import { formatMoney } from "@/lib/money";
+import { getTranslator } from "@/lib/i18n";
+import { statusKey } from "@/lib/i18n/translate";
+import type { TranslationKey } from "@/lib/i18n/en";
 import { AccountShell } from "../../account-shell";
 import { BoxIcon, CheckIcon, TruckIcon } from "@/components/icons";
 
-export const metadata = { title: "Order" };
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t("account.order") };
+}
+
+/* Plain-language next step, so the shopper is not left guessing what a status
+   means. Keyed by status; `account.stepOther` is the fallback. */
+const NEXT_STEP: Record<string, TranslationKey> = {
+  PENDING: "account.stepPENDING",
+  PAID: "account.stepPAID",
+  SHIPPED: "account.stepSHIPPED",
+  DELIVERED: "account.stepDELIVERED",
+  CANCELLED: "account.stepCANCELLED",
+  REFUNDED: "account.stepREFUNDED",
+};
 
 export default async function AccountOrderPage({
   params,
 }: {
   params: Promise<{ orderNumber: string }>;
 }) {
-  const customer = await requireCustomer("/account");
+  const [{ t, locale, tag }, customer] = await Promise.all([
+    getTranslator(),
+    requireCustomer("/account"),
+  ]);
   const { orderNumber } = await params;
 
   // The customerId filter is the authorisation check: even if someone guesses
@@ -32,19 +54,11 @@ export default async function AccountOrderPage({
   });
 
   const dateFmt = (d: Date) =>
-    new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    new Date(d).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" });
   const timeFmt = (d: Date) =>
-    new Date(d).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    new Date(d).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
-  // Plain-language next step, so the shopper is not left guessing what a status means.
-  const NEXT_STEP: Record<string, string> = {
-    PENDING: "We are waiting for your payment to arrive. This updates automatically.",
-    PAID: "Payment received. Your order is being prepared.",
-    SHIPPED: "On its way to you.",
-    DELIVERED: "Delivered. Thanks for shopping with us.",
-    CANCELLED: "This order was cancelled and nothing was charged.",
-    REFUNDED: "This order was refunded to the original payment method.",
-  };
+  const orderStatus = statusKey(order.status);
 
   return (
     <AccountShell customer={customer} memberSince={account.createdAt} active="orders">
@@ -52,24 +66,27 @@ export default async function AccountOrderPage({
         href="/account/orders"
         className="label-xs text-fg/70 underline-offset-4 hover:text-fg hover:underline"
       >
-        &larr; All orders
+        &larr; {t("account.allOrders")}
       </Link>
 
       {/* ── Order header ────────────────────────────────────────────── */}
       <header className="mt-5 flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b border-line pb-6">
         <div>
-          <p className="label-xs text-haze">Order</p>
+          <p className="label-xs text-haze">{t("account.order")}</p>
           <h2 className="mt-1.5 font-mono text-2xl font-black md:text-3xl">{order.orderNumber}</h2>
           <p className="mt-2 text-sm text-fg/70">
-            Placed {dateFmt(order.createdAt)} at {timeFmt(order.createdAt)}
+            {t("account.placedAt", {
+              date: dateFmt(order.createdAt),
+              time: timeFmt(order.createdAt),
+            })}
           </p>
         </div>
         <div className="text-right">
           <span className="status-pill" data-status={order.status}>
-            {order.status}
+            {orderStatus ? t(orderStatus) : order.status}
           </span>
           <p className="mt-3 text-xs leading-relaxed text-fg/70 md:max-w-xs">
-            {NEXT_STEP[order.status] ?? "We will email you if anything changes."}
+            {t(NEXT_STEP[order.status] ?? "account.stepOther")}
           </p>
         </div>
       </header>
@@ -77,14 +94,20 @@ export default async function AccountOrderPage({
       {/* ── Timeline ─────────────────────────────────────────────────── */}
       <ol className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
-          { label: "Placed", done: true, note: dateFmt(order.createdAt) },
+          { label: "account.timelinePlaced" as TranslationKey, done: true, note: dateFmt(order.createdAt) },
           {
-            label: "Paid",
+            label: "account.timelinePaid" as TranslationKey,
             done: ["PAID", "SHIPPED", "DELIVERED"].includes(order.status),
-            note: order.stripePaymentIntentId ? "Confirmed" : "Awaiting",
+            note: order.stripePaymentIntentId ? t("account.confirmed") : t("account.awaiting"),
           },
-          { label: "Shipped", done: ["SHIPPED", "DELIVERED"].includes(order.status) },
-          { label: "Delivered", done: order.status === "DELIVERED" },
+          {
+            label: "account.timelineShipped" as TranslationKey,
+            done: ["SHIPPED", "DELIVERED"].includes(order.status),
+          },
+          {
+            label: "account.timelineDelivered" as TranslationKey,
+            done: order.status === "DELIVERED",
+          },
         ].map((step) => (
           <li
             key={step.label}
@@ -101,9 +124,9 @@ export default async function AccountOrderPage({
               <CheckIcon className="h-3.5 w-3.5" />
             </span>
             <span className="min-w-0">
-              <span className="label-xs block opacity-70">{step.label}</span>
+              <span className="label-xs block opacity-70">{t(step.label)}</span>
               <span className="mt-1.5 block text-sm font-semibold">
-                {step.done ? (step.note ?? "Done") : "Pending"}
+                {step.done ? (step.note ?? t("account.done")) : t("account.pending")}
               </span>
             </span>
           </li>
@@ -114,7 +137,8 @@ export default async function AccountOrderPage({
         {/* ── Items ─────────────────────────────────────────────────── */}
         <section className="card overflow-hidden">
           <h3 className="label-xs border-b border-line px-5 py-4 text-haze">
-            {order.items.length} {order.items.length === 1 ? "item" : "items"}
+            {order.items.length}{" "}
+            {t(order.items.length === 1 ? "account.item" : "account.items")}
           </h3>
 
           <ul className="divide-y divide-line">
@@ -134,11 +158,11 @@ export default async function AccountOrderPage({
                     {item.color} / {item.size}
                   </span>
                   <span className="mt-1 block text-xs text-fg/65">
-                    {formatMoney(item.unitPriceCents, order.currency)} &times; {item.quantity}
+                    {formatMoney(item.unitPriceCents, order.currency, tag)} &times; {item.quantity}
                   </span>
                 </span>
                 <span className="shrink-0 text-sm font-semibold">
-                  {formatMoney(item.unitPriceCents * item.quantity, order.currency)}
+                  {formatMoney(item.unitPriceCents * item.quantity, order.currency, tag)}
                 </span>
               </li>
             ))}
@@ -146,20 +170,20 @@ export default async function AccountOrderPage({
 
           <dl className="space-y-2.5 border-t border-line bg-surface-2 px-5 py-5 text-sm">
             <div className="flex justify-between">
-              <dt className="text-fg/70">Subtotal</dt>
-              <dd>{formatMoney(order.subtotalCents, order.currency)}</dd>
+              <dt className="text-fg/70">{t("account.subtotal")}</dt>
+              <dd>{formatMoney(order.subtotalCents, order.currency, tag)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-fg/70">Delivery</dt>
+              <dt className="text-fg/70">{t("account.delivery")}</dt>
               <dd>
                 {order.shippingCents === 0
-                  ? "Free"
-                  : formatMoney(order.shippingCents, order.currency)}
+                  ? t("account.free")
+                  : formatMoney(order.shippingCents, order.currency, tag)}
               </dd>
             </div>
             <div className="flex justify-between border-t border-line pt-3 text-base font-bold">
-              <dt>Total</dt>
-              <dd>{formatMoney(order.totalCents, order.currency)}</dd>
+              <dt>{t("account.total")}</dt>
+              <dd>{formatMoney(order.totalCents, order.currency, tag)}</dd>
             </div>
           </dl>
         </section>
@@ -169,7 +193,7 @@ export default async function AccountOrderPage({
           <section className="card p-5">
             <div className="flex items-center gap-2">
               <TruckIcon className="h-4 w-4 shrink-0 text-haze" />
-              <h3 className="label-xs text-haze">Delivery address</h3>
+              <h3 className="label-xs text-haze">{t("account.deliveryAddress")}</h3>
             </div>
             <address className="mt-3 space-y-0.5 text-sm not-italic text-fg/75">
               <p className="font-semibold text-fg">{order.fullName}</p>
@@ -186,34 +210,33 @@ export default async function AccountOrderPage({
           <section className="card p-5">
             <div className="flex items-center gap-2">
               <BoxIcon className="h-4 w-4 shrink-0 text-haze" />
-              <h3 className="label-xs text-haze">Payment</h3>
+              <h3 className="label-xs text-haze">{t("account.payment")}</h3>
             </div>
             <p className="mt-3 text-sm font-semibold capitalize">
               {order.paymentMethod.replace(/_/g, " ")}
             </p>
             <p className="mt-1.5 text-xs text-fg/65">
               {order.status === "PENDING"
-                ? "Not yet confirmed."
+                ? t("account.notConfirmed")
                 : order.stripePaymentIntentId
-                  ? "Payment confirmed."
-                  : "Reference on file."}
+                  ? t("account.paymentConfirmed")
+                  : t("account.referenceOnFile")}
             </p>
           </section>
 
           <section className="card p-5">
-            <h3 className="label-xs text-haze">Need help?</h3>
+            <h3 className="label-xs text-haze">{t("account.needHelp")}</h3>
             <p className="mt-3 text-sm leading-relaxed text-fg/70">
-              Quote order <span className="font-mono font-semibold">{order.orderNumber}</span> and we
-              will pick it up from there.
+              {t("account.quoteOrder", { order: order.orderNumber })}
             </p>
             <a
               href={`mailto:hello@rav3s.com?subject=Order ${order.orderNumber}`}
               className="btn btn-ghost mt-4 w-full"
             >
-              Contact us
+              {t("account.contactUs")}
             </a>
             <Link href="/shop" className="btn btn-primary mt-2.5 w-full">
-              Continue shopping
+              {t("account.continueShopping")}
             </Link>
           </section>
         </aside>

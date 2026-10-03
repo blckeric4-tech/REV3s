@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LOCALES, LOCALE_COOKIE, type Locale } from "@/lib/i18n/config";
+import { makeTranslator } from "@/lib/i18n/translate";
 
 /**
  * Client-side language switcher.
@@ -41,6 +42,7 @@ export function LanguageSwitcher({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const t = makeTranslator(current);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -64,7 +66,7 @@ export function LanguageSwitcher({
           className="flex w-full items-center justify-between gap-2 border border-inverse-fg/30 px-3 py-2.5 text-center text-xs uppercase tracking-[0.16em] transition-colors hover:bg-inverse-fg hover:text-inverse"
           aria-haspopup="listbox"
           aria-expanded={open}
-          aria-label={`Current language: ${current.toUpperCase()}`}
+          aria-label={t("lang.current", { code: current.toUpperCase() })}
         >
           <span>{current.toUpperCase()}</span>
           <svg
@@ -135,7 +137,7 @@ export function LanguageSwitcher({
             type="button"
             onClick={() => switchTo(l)}
             aria-pressed={active}
-            aria-label={l === "fr" ? "Passer en français" : "Switch to English"}
+            aria-label={l === "fr" ? t("lang.toFr") : t("lang.toEn")}
             className={`label-xs rounded-full px-2.5 py-1.5 transition-colors ${
               active ? "bg-fg text-bg" : "text-fg/70 hover:text-fg"
             }`}

@@ -1,18 +1,19 @@
 "use client";
 
 import { useActionState } from "react";
-import { login, type ActionState } from "@/app/admin/actions";
+import { login } from "@/app/admin/actions";
+import { initialActionState } from "@/app/admin/action-state";
+import { makeTranslator, type Locale } from "@/lib/i18n/translate";
 
-const initial: ActionState = { ok: false, message: "" };
-
-export function LoginForm() {
-  const [state, action, pending] = useActionState(login, initial);
+export function LoginForm({ locale }: { locale: Locale }) {
+  const [state, action, pending] = useActionState(login, initialActionState);
+  const t = makeTranslator(locale);
 
   return (
     <form action={action} className="space-y-4">
       <div>
         <label htmlFor="email" className="label-xs text-inverse-fg/70">
-          Email
+          {t("adminLogin.email")}
         </label>
         <input
           id="email"
@@ -26,7 +27,7 @@ export function LoginForm() {
 
       <div>
         <label htmlFor="password" className="label-xs text-inverse-fg/70">
-          Password
+          {t("adminLogin.password")}
         </label>
         <input
           id="password"
@@ -38,17 +39,17 @@ export function LoginForm() {
         />
       </div>
 
-      {state.message ? (
+      {state.messageKey ? (
         /* This form sits on the pinned black admin panel, so the message must
            use the inverse text colour — `text-fg` here rendered black on black
            and the error was invisible. */
         <p className="text-xs text-inverse-fg" role="alert">
-          {state.message}
+          {t(state.messageKey, state.values)}
         </p>
       ) : null}
 
       <button type="submit" disabled={pending} className="btn btn-invert w-full">
-        {pending ? "Signing in..." : "Sign in"}
+        {pending ? t("adminLogin.signingIn") : t("adminLogin.signIn")}
       </button>
     </form>
   );

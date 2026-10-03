@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
@@ -5,11 +6,14 @@ import { formatMoney } from "@/lib/money";
 import { stripeConfigured } from "@/lib/stripe";
 import { getTranslator } from "@/lib/i18n";
 
-export const metadata = { title: "Overview" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslator();
+  return { title: t("admin.metaOverview") };
+}
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboard() {
-  const [settings, { t }] = await Promise.all([getSettings(), getTranslator()]);
+  const [settings, { t, tag }] = await Promise.all([getSettings(), getTranslator()]);
 
   const [
     orderCount,
@@ -44,7 +48,7 @@ export default async function AdminDashboard() {
   const stats = [
     {
       label: t("admin.revenue"),
-      value: formatMoney(revenue._sum.totalCents ?? 0, settings.currency),
+      value: formatMoney(revenue._sum.totalCents ?? 0, settings.currency, tag),
       hint: t("admin.paidOrders"),
     },
     {
@@ -135,7 +139,7 @@ export default async function AdminDashboard() {
                     </div>
                     <div className="shrink-0 text-right">
                       <p className="text-sm font-semibold">
-                        {formatMoney(o.totalCents, o.currency)}
+                        {formatMoney(o.totalCents, o.currency, tag)}
                       </p>
                       <p className="mt-0.5 text-[11px] text-fg/65">{o.status}</p>
                     </div>

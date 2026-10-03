@@ -28,10 +28,10 @@ import {
  */
 const NAV = [
   { href: "/shop", key: "nav.shop" },
-  { href: "/shop?sort=newest", label: "New in", key: "shop.sortNewest" },
+  { href: "/shop?sort=newest", key: "nav.newIn" },
   { href: "/about", key: "nav.about" },
   { href: "/contact", key: "nav.contact" },
-] as const satisfies readonly { href: string; key: TranslationKey; label?: string }[];
+] as const satisfies readonly { href: string; key: TranslationKey }[];
 
 /** First name only, so the header never gets pushed around by a long name. */
 function shortName(name: string) {
@@ -89,7 +89,7 @@ export function SiteHeader({
                   href={item.href}
                   className="label-xs text-fg/70 transition-colors hover:text-fg"
                 >
-                  {"label" in item ? item.label : t(item.key)}
+                  {t(item.key)}
                 </Link>
               ))}
             </nav>
@@ -154,7 +154,7 @@ export function SiteHeader({
                   <>
                     <button
                       type="button"
-                      aria-label="Close account menu"
+                      aria-label={t("nav.closeAccountMenu")}
                       onClick={() => setAccountOpen(false)}
                       className="fixed inset-0 z-10 cursor-default"
                     />
@@ -223,7 +223,7 @@ export function SiteHeader({
               </Link>
             )}
 
-            <ThemeToggle />
+            <ThemeToggle locale={locale} />
 
             <LanguageSwitcher current={locale} />
 
@@ -264,7 +264,7 @@ export function SiteHeader({
                 onClick={() => setOpen(false)}
                 className="label-xs block border-b border-line px-5 py-4"
               >
-                {"label" in item ? item.label : t(item.key)}
+                {t(item.key)}
               </Link>
             ))}
             <Link

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { formatMoney } from "@/lib/money";
+import { LOCALE_TAGS, type Locale } from "@/lib/i18n/config";
 
 type Props = {
   slug: string;
@@ -11,8 +12,11 @@ type Props = {
   badge?: string | null;
   colors: { color: string; colorHex: string }[];
   category: string;
+  /** Localized category name for display; falls back to `category` when absent. */
+  categoryLabel?: string;
   currency: string;
   priority?: boolean;
+  locale?: Locale;
 };
 
 export function ProductCard({
@@ -24,9 +28,12 @@ export function ProductCard({
   badge,
   colors,
   category,
+  categoryLabel,
   currency,
   priority,
+  locale = "en",
 }: Props) {
+  const tag = LOCALE_TAGS[locale];
   // A product has one row per size+colour, so the same colour repeats. Collapse
   // to one swatch per colour or React gets duplicate keys.
   const swatches = Array.from(
@@ -72,14 +79,14 @@ export function ProductCard({
 
       <div className="mt-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="label-xs text-fg/65">{category}</p>
+          <p className="label-xs text-fg/65">{categoryLabel || category}</p>
           <h3 className="mt-1 truncate text-sm font-semibold tracking-tight">{name}</h3>
         </div>
         <div className="shrink-0 text-right">
-          <p className="text-sm font-semibold">{formatMoney(priceCents, currency)}</p>
+          <p className="text-sm font-semibold">{formatMoney(priceCents, currency, tag)}</p>
           {compareCents ? (
             <p className="text-xs text-fg/70 line-through">
-              {formatMoney(compareCents, currency)}
+              {formatMoney(compareCents, currency, tag)}
             </p>
           ) : null}
         </div>

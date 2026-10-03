@@ -4,6 +4,7 @@ import { db } from "@/lib/prisma";
 import { stripe, stripeConfigured } from "@/lib/stripe";
 import { getSettings } from "@/lib/settings";
 import { getCustomer } from "@/lib/customer-auth";
+import { getTranslator } from "@/lib/i18n";
 import {
   availableMethods,
   flutterwaveInitialize,
@@ -11,11 +12,17 @@ import {
   type PaymentMethod,
 } from "@/lib/payments";
 
+/**
+ * Validation messages are translation *keys*, not sentences: the client turns
+ * them back into text in the visitor's language (see `localizeError` in
+ * cart-view). A sentence baked here would always come back in whatever
+ * language this server happened to resolve.
+ */
 const bodySchema = z.object({
   method: z.enum(["paypack", "flutterwave", "stripe"]),
-  phone: z.string().min(9, "Enter a valid phone number.").max(20).optional(),
-  email: z.string().email("Enter a valid email.").optional(),
-  fullName: z.string().min(2, "Enter your full name.").max(120).optional(),
+  phone: z.string().min(9, "api.phoneInvalid").max(20).optional(),
+  email: z.string().email("api.emailInvalid").optional(),
+  fullName: z.string().min(2, "api.nameRequired").max(120).optional(),
   lines: z
     .array(
       z.object({
@@ -23,7 +30,7 @@ const bodySchema = z.object({
         quantity: z.number().int().min(1).max(20),
       })
     )
-    .min(1, "Your bag is empty.")
+    .min(1, "api.bagEmpty")
     .max(50),
 });
 
@@ -34,23 +41,21 @@ function orderNumber() {
 }
 
 export async function POST(request: Request) {
+  const { t } = await getTranslator();
   let parsed;
   try {
     parsed = bodySchema.parse(await request.json());
   } catch (e) {
     const message =
       e instanceof z.ZodError
-        ? (e.issues[0]?.message ?? "Invalid bag contents.")
-        : "Invalid bag contents.";
+        ? (e.issues[0]?.message ?? "api.invalidBag")
+        : "api.invalidBag";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
   const method = parsed.method as PaymentMethod;
   if (!availableMethods().includes(method)) {
-    return NextResponse.json(
-      { error: "That payment method is not available yet. Please try another one." },
-      { status: 503 }
-    );
+    return NextResponse.json({ error: "api.methodUnavailable" }, { status: 503 });
   }
 
   const settings = await getSettings();
@@ -67,7 +72,7 @@ export async function POST(request: Request) {
     const variant = byId.get(requested.variantId);
     if (!variant || !variant.product.active) {
       return NextResponse.json(
-        { error: "An item in your bag is no longer available." },
+        { error: "api.itemUnavailable" },
         { status: 409 }
       );
     }
@@ -180,7 +185,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ method, url: link, orderId: order.id });
     }
 
-    if (!stripeConfigured() || !stripe) throw new Error("Stripe is not configured.");
+    if (!stripeConfigured() || !stripe) throw new Error("api.stripeNotConfigured");
 
     const stripeCurrency = settings.currency === "rwf" ? "usd" : settings.currency;
 
@@ -207,7 +212,7 @@ export async function POST(request: Request) {
           shipping_rate_data: {
             type: "fixed_amount",
             fixed_amount: { amount: shippingCents, currency: stripeCurrency },
-            display_name: shippingCents === 0 ? "Free delivery" : "Standard delivery",
+            display_name: shippingCents === 0 ? t("api.freeDelivery") : t("api.standardDelivery"),
             delivery_estimate: { minimum: { unit: "business_day", value: 3 }, maximum: { unit: "business_day", value: 6 } },
           },
         },
@@ -227,7 +232,7 @@ export async function POST(request: Request) {
     await db.order
       .delete({ where: { id: order.id } })
       .catch(() => undefined);
-    const message = e instanceof Error ? e.message : "The payment request failed.";
-    return NextResponse.json({ error: `Payment error: ${message}` }, { status: 502 });
+    const message = e instanceof Error ? e.message : "api.paymentFailed";
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 }

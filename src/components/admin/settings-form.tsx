@@ -5,8 +5,9 @@ import { saveSettings } from "@/app/admin/actions";
 import type { Settings } from "@/lib/settings";
 import { parseList } from "@/lib/money";
 import { ImagePicker } from "@/components/admin/image-picker";
+import { makeTranslator, type Locale } from "@/lib/i18n/translate";
 
-type Props = { settings: Settings };
+type Props = { settings: Settings; locale: Locale };
 
 /**
  * Picks whichever of the two brand colours stays readable on `hex`, so the
@@ -25,7 +26,9 @@ export function SettingsForm({
   settings,
   categories,
   valueProps,
+  locale,
 }: Props & { categories: string[]; valueProps: string[] }) {
+  const t = makeTranslator(locale);
   const [pending, setPending] = useState(false);
   const [ink, bone, volt, clay] = [
     settings.colorInk,
@@ -41,30 +44,34 @@ export function SettingsForm({
       className="space-y-5"
     >
       {/* ---------------- BRAND ---------------- */}
-      <Section title="Brand" hint="Name and wordmark shown across the site.">
+      <Section title={t("adminSet.brand")} hint={t("adminSet.brandHint")}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Site name" name="siteName" defaultValue={settings.siteName} />
-          <Input label="Tagline" name="tagline" defaultValue={settings.tagline} />
-          <Input label="Logo text" name="logoText" defaultValue={settings.logoText} />
-          <Input label="Logo mark" name="logoMark" defaultValue={settings.logoMark} />
+          <Input label={t("adminSet.siteName")} name="siteName" defaultValue={settings.siteName} />
+          <Input label={t("adminSet.tagline")} name="tagline" defaultValue={settings.tagline} />
+          <Input label={t("adminSet.logoText")} name="logoText" defaultValue={settings.logoText} />
+          <Input label={t("adminSet.logoMark")} name="logoMark" defaultValue={settings.logoMark} />
         </div>
       </Section>
 
       {/* ---------------- COLOURS ---------------- */}
-      <Section
-        title="Colours"
-        hint="These drive every button, badge and highlight on the site."
-      >
+      <Section title={t("adminSet.colours")} hint={t("adminSet.coloursHint")}>
         <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          <ColorInput label="Ink" name="colorInk" value={ink} />
-          <ColorInput label="Bone" name="colorBone" value={bone} />
-          <ColorInput label="Volt" name="colorVolt" value={volt} />
-          <ColorInput label="Clay" name="colorClay" value={clay} />
-          <ColorInput label="Haze" name="colorHaze" value={settings.colorHaze} />
+          <ColorInput locale={locale} label={t("adminSet.ink")} name="colorInk" value={ink} />
+          <ColorInput locale={locale} label={t("adminSet.bone")} name="colorBone" value={bone} />
+          <ColorInput locale={locale} label={t("adminSet.volt")} name="colorVolt" value={volt} />
+          <ColorInput locale={locale} label={t("adminSet.clay")} name="colorClay" value={clay} />
+          <ColorInput
+            locale={locale}
+            label={t("adminSet.haze")}
+            name="colorHaze"
+            value={settings.colorHaze}
+          />
         </div>
 
         <div className="mt-5 overflow-hidden rounded-lg border border-line">
-          <p className="label-xs bg-inverse px-4 py-2 text-inverse-fg/80">Live preview</p>
+          <p className="label-xs bg-inverse px-4 py-2 text-inverse-fg/80">
+            {t("adminSet.livePreview")}
+          </p>
           <div
             className="flex flex-wrap items-center gap-3 p-5"
             style={{ backgroundColor: bone, color: ink }}
@@ -80,29 +87,29 @@ export function SettingsForm({
               className="rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest"
               style={{ backgroundColor: ink, color: bone }}
             >
-              Primary
+              {t("adminSet.previewPrimary")}
             </span>
             <span
               className="rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest"
               style={{ backgroundColor: volt, color: ink }}
             >
-              Accent
+              {t("adminSet.previewAccent")}
             </span>
             <span
               className="rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-widest"
               style={{ backgroundColor: clay, color: readableOn(clay, bone, ink) }}
             >
-              Highlight
+              {t("adminSet.previewHighlight")}
             </span>
             <span className="text-xs" style={{ color: settings.colorHaze }}>
-              Muted supporting text
+              {t("adminSet.previewMuted")}
             </span>
           </div>
         </div>
       </Section>
 
       {/* ---------------- ANNOUNCEMENT ---------------- */}
-      <Section title="Announcement bar" hint="The scrolling strip at the very top.">
+      <Section title={t("adminSet.announcement")} hint={t("adminSet.announcementHint")}>
         <div className="space-y-3">
           <label className="flex items-center gap-2.5 text-sm">
             <input
@@ -111,10 +118,10 @@ export function SettingsForm({
               defaultChecked={settings.announcementOn}
               className="h-4 w-4 accent-fg"
             />
-            Show the announcement bar
+            {t("adminSet.showAnnouncement")}
           </label>
           <Input
-            label="Announcement text"
+            label={t("adminSet.announcementText")}
             name="announcementText"
             defaultValue={settings.announcementText}
           />
@@ -122,78 +129,100 @@ export function SettingsForm({
       </Section>
 
       {/* ---------------- HERO ---------------- */}
-      <Section title="Landing page hero" hint="The first thing visitors see.">
+      <Section title={t("adminSet.hero")} hint={t("adminSet.heroHint")}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Kicker" name="heroKicker" defaultValue={settings.heroKicker} />
+          <Input label={t("adminSet.kicker")} name="heroKicker" defaultValue={settings.heroKicker} />
           <div className="sm:col-span-2">
             <ImagePicker
               name="heroImage"
-              label="Hero image"
+              label={t("adminSet.heroImage")}
               defaultValue={settings.heroImage}
               single
-              hint="Upload from your computer or paste a URL. A remote URL is downloaded into the project on save."
+              hint={t("adminSet.heroImageHint")}
+              locale={locale}
             />
           </div>
           <div className="sm:col-span-2">
             <Select
-              label="How the hero image should fit"
+              label={t("adminSet.heroFit")}
               name="heroFit"
               defaultValue={settings.heroFit === "cover" ? "cover" : "contain"}
-              hint="Fit (show whole photo) leaves black bars when the photo is a different shape than the screen. Fill looks full-bleed but crops the edges."
+              hint={t("adminSet.heroFitHint")}
               options={[
-                { value: "contain", label: "Fit — show the whole photo (no cropping)" },
-                { value: "cover", label: "Fill — cover the screen, cropping the edges" },
+                { value: "contain", label: t("adminSet.heroFitContain") },
+                { value: "cover", label: t("adminSet.heroFitCover") },
               ]}
             />
           </div>
           <div className="sm:col-span-2">
-            <Input label="Headline" name="heroTitle" defaultValue={settings.heroTitle} />
+            <Input
+              label={t("adminSet.headline")}
+              name="heroTitle"
+              defaultValue={settings.heroTitle}
+            />
           </div>
           <div className="sm:col-span-2">
-            <TextArea label="Supporting copy" name="heroBody" defaultValue={settings.heroBody} rows={3} />
+            <TextArea
+              label={t("adminSet.supportingCopy")}
+              name="heroBody"
+              defaultValue={settings.heroBody}
+              rows={3}
+            />
           </div>
-          <Input label="Button text" name="heroCtaText" defaultValue={settings.heroCtaText} />
-          <Input label="Button link" name="heroCtaHref" defaultValue={settings.heroCtaHref} />
           <Input
-            label="Secondary button text"
+            label={t("adminSet.buttonText")}
+            name="heroCtaText"
+            defaultValue={settings.heroCtaText}
+          />
+          <Input
+            label={t("adminSet.buttonLink")}
+            name="heroCtaHref"
+            defaultValue={settings.heroCtaHref}
+          />
+          <Input
+            label={t("adminSet.secondaryButtonText")}
             name="heroSecondaryText"
             defaultValue={settings.heroSecondaryText}
           />
-          <Input label="Secondary button link" name="heroSecondaryHref" defaultValue={settings.heroSecondaryHref} />
+          <Input
+            label={t("adminSet.secondaryButtonLink")}
+            name="heroSecondaryHref"
+            defaultValue={settings.heroSecondaryHref}
+          />
         </div>
       </Section>
 
       {/* ---------------- VIDEO & GALLERY ---------------- */}
-      <Section
-        title="Video & lookbook"
-        hint="Add a video to the hero and photos to the scrolling strip and lookbook."
-      >
+      <Section title={t("adminSet.videoLookbook")} hint={t("adminSet.videoLookbookHint")}>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <ImagePicker
               name="heroVideo"
-              label="Hero video"
+              label={t("adminSet.heroVideo")}
               kind="video"
               defaultValue={settings.heroVideo}
               single
-              hint="Choose a file from your computer, or paste a URL ending in .mp4 or .webm. Leave empty to use the hero image instead. We recommend a 10-20 second clip."
+              hint={t("adminSet.heroVideoHint")}
+              locale={locale}
             />
           </div>
           <div className="sm:col-span-2">
             <ImagePicker
               name="videoPoster"
-              label="Video poster image"
+              label={t("adminSet.videoPoster")}
               defaultValue={settings.videoPoster}
               single
-              hint="Shown before the video starts playing. Leave empty to use the hero image."
+              hint={t("adminSet.videoPosterHint")}
+              locale={locale}
             />
           </div>
           <div className="sm:col-span-2">
             <ImagePicker
               name="galleryImages"
-              label="Scrolling photo strip on the home page"
+              label={t("adminSet.galleryImages")}
               defaultValue={parseList(settings.galleryImages).join(", ")}
-              hint="Add several pictures here — they appear in the row that scrolls sideways just under the hero. Select more than one file at a time, then press Save site settings. Remote URLs are downloaded into the project on save."
+              hint={t("adminSet.galleryImagesHint")}
+              locale={locale}
             />
           </div>
         </div>
@@ -201,8 +230,8 @@ export function SettingsForm({
 
       {/* ---------------- INTERNATIONAL ---------------- */}
       <Section
-        title="WhatsApp, phone & location"
-        hint="The floating WhatsApp button, the footer contact block and the Google Map."
+        title={t("adminSet.contactLocation")}
+        hint={t("adminSet.contactLocationHint")}
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="flex items-center gap-2 text-sm">
@@ -212,88 +241,103 @@ export function SettingsForm({
               defaultChecked={settings.whatsappOn}
               className="h-4 w-4 accent-fg"
             />
-            Show the floating WhatsApp button
+            {t("adminSet.showWhatsapp")}
           </label>
           <div />
           <Input
-            label="WhatsApp number"
+            label={t("adminSet.whatsappNumber")}
             name="whatsappNumber"
             defaultValue={settings.whatsappNumber}
             placeholder="0788123456"
-            hint="Local format. The country code is added automatically."
+            hint={t("adminSet.whatsappNumberHint")}
           />
           <Input
-            label="Phone number"
+            label={t("adminSet.phoneNumber")}
             name="phoneNumber"
             defaultValue={settings.phoneNumber}
             placeholder="+250 788 000 000"
           />
           <div className="sm:col-span-2">
             <Input
-              label="Pre-filled WhatsApp message"
+              label={t("adminSet.whatsappMessage")}
               name="whatsappMessage"
               defaultValue={settings.whatsappMessage}
             />
           </div>
           <div className="sm:col-span-2">
             <Input
-              label="Shop address / district"
+              label={t("adminSet.shopAddress")}
               name="mapAddress"
               defaultValue={settings.mapAddress}
               placeholder="KN 5 Ave, Kigali, Rwanda"
-              hint="Used to place the Google Map and the directions link."
+              hint={t("adminSet.shopAddressHint")}
             />
           </div>
           <div className="sm:col-span-2">
             <Input
-              label="Google Maps embed URL"
+              label={t("adminSet.mapEmbed")}
               name="mapEmbedUrl"
               defaultValue={settings.mapEmbedUrl}
               placeholder="https://www.google.com/maps/embed?pb=..."
-              hint="Optional. In Google Maps choose Share > Embed a map and paste the URL. Leave empty to search the address automatically."
+              hint={t("adminSet.mapEmbedHint")}
             />
           </div>
-          <Input label="Instagram URL" name="instagramUrl" defaultValue={settings.instagramUrl} />
-          <Input label="TikTok URL" name="tiktokUrl" defaultValue={settings.tiktokUrl} />
-          <Input label="Facebook URL" name="facebookUrl" defaultValue={settings.facebookUrl} />
+          <Input
+            label={t("adminSet.instagramUrl")}
+            name="instagramUrl"
+            defaultValue={settings.instagramUrl}
+          />
+          <Input label={t("adminSet.tiktokUrl")} name="tiktokUrl" defaultValue={settings.tiktokUrl} />
+          <Input
+            label={t("adminSet.facebookUrl")}
+            name="facebookUrl"
+            defaultValue={settings.facebookUrl}
+          />
         </div>
       </Section>
 
       {/* ---------------- STORY ---------------- */}
-      <Section title="Brand story" hint="The about strip on the landing page.">
+      <Section title={t("adminSet.story")} hint={t("adminSet.storyHint")}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Kicker" name="storyKicker" defaultValue={settings.storyKicker} />
+          <Input label={t("adminSet.kicker")} name="storyKicker" defaultValue={settings.storyKicker} />
           <div className="sm:col-span-2">
             <ImagePicker
               name="storyImage"
-              label="Story image"
+              label={t("adminSet.storyImage")}
               defaultValue={settings.storyImage}
               single
+              locale={locale}
             />
           </div>
           <div className="sm:col-span-2">
-            <Input label="Headline" name="storyTitle" defaultValue={settings.storyTitle} />
+            <Input
+              label={t("adminSet.headline")}
+              name="storyTitle"
+              defaultValue={settings.storyTitle}
+            />
           </div>
           <div className="sm:col-span-2">
-            <TextArea label="Body" name="storyBody" defaultValue={settings.storyBody} rows={4} />
+            <TextArea
+              label={t("adminSet.body")}
+              name="storyBody"
+              defaultValue={settings.storyBody}
+              rows={4}
+            />
           </div>
         </div>
       </Section>
 
       {/* ---------------- LISTS ---------------- */}
-      <Section
-        title="Value props & categories"
-        hint="One item per line. Categories drive the shop filters."
-      >
+      <Section title={t("adminSet.valueProps")} hint={t("adminSet.valuePropsHint")}>
         <div className="grid gap-4 sm:grid-cols-2">
           <TextArea
-            label="Value props (highlight strip)"
+            label={t("adminSet.valuePropsLabel")}
             name="valueProps"
             defaultValue={valueProps.join("\n")}
             rows={4}
           />
           <TextArea
-            label="Categories"
+            label={t("adminSet.categories")}
             name="categories"
             defaultValue={categories.join("\n")}
             rows={4}
@@ -302,11 +346,15 @@ export function SettingsForm({
       </Section>
 
       {/* ---------------- SHOP ---------------- */}
-      <Section title="Shop page" hint="Headings on the product listing.">
+      <Section title={t("adminSet.shopPage")} hint={t("adminSet.shopPageHint")}>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Shop heading" name="shopTitle" defaultValue={settings.shopTitle} />
           <Input
-            label="Shop description"
+            label={t("adminSet.shopHeading")}
+            name="shopTitle"
+            defaultValue={settings.shopTitle}
+          />
+          <Input
+            label={t("adminSet.shopDescription")}
             name="shopDescription"
             defaultValue={settings.shopDescription}
           />
@@ -314,7 +362,7 @@ export function SettingsForm({
       </Section>
 
       {/* ---------------- NEWSLETTER ---------------- */}
-      <Section title="Newsletter sign-up" hint="The coloured block near the footer.">
+      <Section title={t("adminSet.newsletter")} hint={t("adminSet.newsletterHint")}>
         <div className="space-y-4">
           <label className="flex items-center gap-2.5 text-sm">
             <input
@@ -323,16 +371,16 @@ export function SettingsForm({
               defaultChecked={settings.newsletterEnabled}
               className="h-4 w-4 accent-fg"
             />
-            Show the newsletter block
+            {t("adminSet.showNewsletter")}
           </label>
           <div className="grid gap-4 sm:grid-cols-2">
             <Input
-              label="Headline"
+              label={t("adminSet.headline")}
               name="newsletterTitle"
               defaultValue={settings.newsletterTitle}
             />
             <Input
-              label="Body"
+              label={t("adminSet.body")}
               name="newsletterBody"
               defaultValue={settings.newsletterBody}
             />
@@ -341,24 +389,38 @@ export function SettingsForm({
       </Section>
 
       {/* ---------------- FOOTER ---------------- */}
-      <Section title="Footer & contact" hint="Socials and contact details.">
+      <Section title={t("adminSet.footer")} hint={t("adminSet.footerHint")}>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <TextArea label="About text" name="footerAbout" defaultValue={settings.footerAbout} rows={2} />
+            <TextArea
+              label={t("adminSet.aboutText")}
+              name="footerAbout"
+              defaultValue={settings.footerAbout}
+              rows={2}
+            />
           </div>
-          <Input label="Instagram URL" name="footerInstagram" defaultValue={settings.footerInstagram} />
-          <Input label="TikTok URL" name="footerTiktok" defaultValue={settings.footerTiktok} />
-          <Input label="Email" name="footerEmail" defaultValue={settings.footerEmail} />
-          <Input label="Address" name="footerAddress" defaultValue={settings.footerAddress} />
+          <Input
+            label={t("adminSet.instagramUrl")}
+            name="footerInstagram"
+            defaultValue={settings.footerInstagram}
+          />
+          <Input label={t("adminSet.tiktokUrl")} name="footerTiktok" defaultValue={settings.footerTiktok} />
+          <Input label={t("adminSet.email")} name="footerEmail" defaultValue={settings.footerEmail} />
+          <Input label={t("adminSet.address")} name="footerAddress" defaultValue={settings.footerAddress} />
         </div>
       </Section>
 
       {/* ---------------- COMMERCE ---------------- */}
-      <Section title="Shipping & stock" hint="Applied at checkout and in the admin alerts.">
+      <Section title={t("adminSet.shippingStock")} hint={t("adminSet.shippingStockHint")}>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Input label="Currency code" name="currency" defaultValue={settings.currency} hint="e.g. rwf, usd, gbp" />
           <Input
-            label="Flat shipping"
+            label={t("adminSet.currencyCode")}
+            name="currency"
+            defaultValue={settings.currency}
+            hint={t("adminSet.currencyCodeHint")}
+          />
+          <Input
+            label={t("adminSet.flatShipping")}
             name="shippingFlat"
             type="number"
             step="1"
@@ -366,7 +428,7 @@ export function SettingsForm({
             defaultValue={(settings.shippingFlatCents / 100).toFixed(0)}
           />
           <Input
-            label="Free shipping over"
+            label={t("adminSet.freeShippingOver")}
             name="freeShippingOver"
             type="number"
             step="1"
@@ -374,7 +436,7 @@ export function SettingsForm({
             defaultValue={(settings.freeShippingOverCents / 100).toFixed(0)}
           />
           <Input
-            label="Low stock alert at"
+            label={t("adminSet.lowStockAlert")}
             name="lowStockThreshold"
             type="number"
             min="0"
@@ -383,13 +445,180 @@ export function SettingsForm({
         </div>
       </Section>
 
+      {/* ---------------- FRENCH OVERRIDES ---------------- */}
+      {/* Kept as one block at the end rather than a second field beside each
+          English one: the site copy is long, and grouping it here is the only
+          way to see at a glance what still has no French version. */}
+      <Section title={t("adminSet.french")} hint={t("adminSet.frenchHint")}>
+        <p className="mb-5 rounded border border-line bg-surface-2 p-3 text-xs text-fg/70">
+          {t("adminSet.frenchFallback")}
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label={t("adminSet.tagline")}
+            name="taglineFr"
+            defaultValue={settings.taglineFr ?? ""}
+            hint={t("adminSet.frenchOptional")}
+          />
+          <Input
+            label={t("adminSet.announcementText")}
+            name="announcementTextFr"
+            defaultValue={settings.announcementTextFr ?? ""}
+            hint={t("adminSet.frenchOptional")}
+          />
+          <div className="sm:col-span-2">
+            <Input
+              label={t("adminSet.whatsappMessage")}
+              name="whatsappMessageFr"
+              defaultValue={settings.whatsappMessageFr ?? ""}
+              hint={t("adminSet.frenchOptional")}
+            />
+          </div>
+        </div>
+
+        <h3 className="mt-8 text-xs font-bold uppercase tracking-wider text-fg/65">
+          {t("adminSet.hero")}
+        </h3>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <Input
+            label={t("adminSet.kicker")}
+            name="heroKickerFr"
+            defaultValue={settings.heroKickerFr ?? ""}
+            hint={t("adminSet.frenchOptional")}
+          />
+          <Input
+            label={t("adminSet.headline")}
+            name="heroTitleFr"
+            defaultValue={settings.heroTitleFr ?? ""}
+            hint={t("adminSet.frenchOptional")}
+          />
+          <div className="sm:col-span-2">
+            <TextArea
+              label={t("adminSet.supportingCopy")}
+              name="heroBodyFr"
+              rows={2}
+              defaultValue={settings.heroBodyFr ?? ""}
+              hint={t("adminSet.frenchOptional")}
+            />
+          </div>
+          <Input
+            label={t("adminSet.buttonText")}
+            name="heroCtaTextFr"
+            defaultValue={settings.heroCtaTextFr ?? ""}
+            hint={t("adminSet.frenchOptional")}
+          />
+          <Input
+            label={t("adminSet.secondaryButtonText")}
+            name="heroSecondaryTextFr"
+            defaultValue={settings.heroSecondaryTextFr ?? ""}
+            hint={t("adminSet.frenchOptional")}
+          />
+        </div>
+
+        <h3 className="mt-8 text-xs font-bold uppercase tracking-wider text-fg/65">
+          {t("adminSet.story")}
+        </h3>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <Input
+            label={t("adminSet.kicker")}
+            name="storyKickerFr"
+            defaultValue={settings.storyKickerFr ?? ""}
+            hint={t("adminSet.frenchOptional")}
+          />
+          <Input
+            label={t("adminSet.headline")}
+            name="storyTitleFr"
+            defaultValue={settings.storyTitleFr ?? ""}
+            hint={t("adminSet.frenchOptional")}
+          />
+          <div className="sm:col-span-2">
+            <TextArea
+              label={t("adminSet.body")}
+              name="storyBodyFr"
+              rows={4}
+              defaultValue={settings.storyBodyFr ?? ""}
+              hint={t("adminSet.frenchOptional")}
+            />
+          </div>
+        </div>
+
+        <h3 className="mt-8 text-xs font-bold uppercase tracking-wider text-fg/65">
+          {t("adminSet.valueProps")}
+        </h3>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <TextArea
+            label={t("adminSet.valuePropsLabel")}
+            name="valuePropsFr"
+            rows={4}
+            defaultValue={parseList(settings.valuePropsFr).join("\n")}
+            hint={t("adminSet.valuePropsFrHint")}
+          />
+          <TextArea
+            label={t("adminSet.categories")}
+            name="categoriesFr"
+            rows={4}
+            defaultValue={parseList(settings.categoriesFr).join("\n")}
+            hint={t("adminSet.categoriesFrHint")}
+          />
+        </div>
+        <p className="mt-3 text-xs text-fg/65">{t("adminSet.frenchListOrder")}</p>
+
+        <h3 className="mt-8 text-xs font-bold uppercase tracking-wider text-fg/65">
+          {t("adminSet.shopPage")}
+        </h3>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <Input
+            label={t("adminSet.shopHeading")}
+            name="shopTitleFr"
+            defaultValue={settings.shopTitleFr ?? ""}
+            hint={t("adminSet.frenchOptional")}
+          />
+          <Input
+            label={t("adminSet.shopDescription")}
+            name="shopDescriptionFr"
+            defaultValue={settings.shopDescriptionFr ?? ""}
+            hint={t("adminSet.frenchOptional")}
+          />
+        </div>
+
+        <h3 className="mt-8 text-xs font-bold uppercase tracking-wider text-fg/65">
+          {t("adminSet.newsletter")}
+        </h3>
+        <div className="mt-3 grid gap-4 sm:grid-cols-2">
+          <Input
+            label={t("adminSet.headline")}
+            name="newsletterTitleFr"
+            defaultValue={settings.newsletterTitleFr ?? ""}
+            hint={t("adminSet.frenchOptional")}
+          />
+          <Input
+            label={t("adminSet.body")}
+            name="newsletterBodyFr"
+            defaultValue={settings.newsletterBodyFr ?? ""}
+            hint={t("adminSet.frenchOptional")}
+          />
+        </div>
+
+        <h3 className="mt-8 text-xs font-bold uppercase tracking-wider text-fg/65">
+          {t("adminSet.footer")}
+        </h3>
+        <div className="mt-3">
+          <TextArea
+            label={t("adminSet.aboutText")}
+            name="footerAboutFr"
+            rows={2}
+            defaultValue={settings.footerAboutFr ?? ""}
+            hint={t("adminSet.frenchOptional")}
+          />
+        </div>
+      </Section>
+
       <div className="sticky bottom-4 z-10">
         <div className="flex items-center justify-between gap-4 rounded-[var(--radius-card)] border border-fg bg-inverse px-5 py-4 text-inverse-fg shadow-lg">
-          <p className="text-xs text-inverse-fg/80">
-            Changes go live across the whole site on save.
-          </p>
+          <p className="text-xs text-inverse-fg/80">{t("adminSet.liveNote")}</p>
           <button type="submit" disabled={pending} className="btn btn-volt">
-            {pending ? "Saving..." : "Save all changes"}
+            {pending ? t("adminSet.saving") : t("adminSet.saveAll")}
           </button>
         </div>
       </div>
@@ -468,7 +697,18 @@ function Select({
   );
 }
 
-function ColorInput({ label, name, value }: { label: string; name: string; value: string }) {
+function ColorInput({
+  locale,
+  label,
+  name,
+  value,
+}: {
+  locale: Locale;
+  label: string;
+  name: string;
+  value: string;
+}) {
+  const t = makeTranslator(locale);
   const [hex, setHex] = useState(value);
 
   return (
@@ -481,7 +721,7 @@ function ColorInput({ label, name, value }: { label: string; name: string; value
           onChange={(e) => setHex(e.target.value)}
           className="h-10 w-12 shrink-0 cursor-pointer rounded border border-line bg-surface p-0.5"
           tabIndex={-1}
-          aria-label={`${label} colour picker`}
+          aria-label={t("adminSet.colourPicker", { name: label })}
         />
         <input
           name={name}

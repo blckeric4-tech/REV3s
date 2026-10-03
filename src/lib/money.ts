@@ -2,31 +2,36 @@ const ZERO_DECIMAL = new Set([
   "rwf", "ugx", "kes", "tzs", "bif", "djf", "gnf", "jpy", "vnd", "vuv", "xaf", "xof", "xpf",
 ]);
 
-export function formatMoney(cents: number, currency = "rwf") {
+/**
+ * `tag` is a BCP 47 tag (`en-GB`, `fr-FR`). It decides the thousands separator
+ * and the decimal mark, so pass the active locale's tag; it defaults to
+ * `en-US` so a call that forgets still renders.
+ */
+export function formatMoney(cents: number, currency = "rwf", tag = "en-US") {
   const code = String(currency || "rwf").toLowerCase();
   const amount = cents / 100;
 
-  if (code === "rwf") return `${Math.round(amount).toLocaleString("en-US")} FRW`;
+  if (code === "rwf") return `${Math.round(amount).toLocaleString(tag)} FRW`;
 
   try {
     const noDecimals = ZERO_DECIMAL.has(code);
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat(tag, {
       style: "currency",
       currency: code.toUpperCase(),
       minimumFractionDigits: noDecimals ? 0 : amount % 1 === 0 ? 0 : 2,
       maximumFractionDigits: noDecimals ? 0 : 2,
     }).format(amount);
   } catch {
-    return `${Math.round(amount).toLocaleString("en-US")} ${code.toUpperCase()}`;
+    return `${Math.round(amount).toLocaleString(tag)} ${code.toUpperCase()}`;
   }
 }
 
-export function currencySymbol(currency = "rwf") {
+export function currencySymbol(currency = "rwf", tag = "en-US") {
   const code = String(currency || "rwf").toLowerCase();
   if (code === "rwf") return "RWF";
   try {
     return (
-      new Intl.NumberFormat("en-US", { style: "currency", currency: code.toUpperCase() })
+      new Intl.NumberFormat(tag, { style: "currency", currency: code.toUpperCase() })
         .formatToParts(0)
         .find((p) => p.type === "currency")?.value ?? code.toUpperCase()
     );

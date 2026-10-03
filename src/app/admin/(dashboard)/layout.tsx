@@ -52,6 +52,7 @@ export default async function AdminDashboardLayout({
               <ThemeToggle
                 variant="labelled"
                 className="border-inverse-fg/30 text-inverse-fg hover:bg-inverse-fg hover:text-inverse"
+                locale={locale}
               />
             </div>
             <Link
@@ -70,6 +71,7 @@ export default async function AdminDashboardLayout({
               cancelLabel={t("admin.staySignedIn")}
               subject={user.email}
               className="label-xs flex-1 border border-inverse-fg/30 px-3 py-2.5 text-center transition-colors hover:bg-inverse-fg hover:text-inverse"
+              locale={locale}
             />
           </div>
           <div className="mt-3">
@@ -79,6 +81,7 @@ export default async function AdminDashboardLayout({
             <ThemeToggle
               variant="labelled"
               className="border-inverse-fg/30 text-inverse-fg hover:bg-inverse-fg hover:text-inverse"
+              locale={locale}
             />
           </div>
         </div>

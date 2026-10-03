@@ -195,6 +195,48 @@ export function ClockIcon({ className, title }: IconProps) {
   );
 }
 
+/* ── Plan & billing ─────────────────────────────────────────────────── */
+
+/**
+ * Attention triangle.
+ *
+ * Drawn on a true equilateral triangle (12 → 3.6,20.7 → 20.4,20.7) rather than
+ * the boxy `(12 3, 21 20, 3 20)` that most icon sets use, so it reads as a
+ * deliberate warning mark instead of a generic glyph. The exclamation is
+ * detached from the apex and stops short of the base to keep the counters open
+ * at small sizes.
+ */
+export function AlertTriangleIcon({ className, title }: IconProps) {
+  return (
+    <Svg className={className} title={title}>
+      <path d="M12 3.6 20.4 20.7H3.6L12 3.6Z" />
+      <path d="M12 9.4v4.4" />
+      <path d="M12 17h.01" />
+    </Svg>
+  );
+}
+
+/** Stacked rack — reads as "the thing that hosts your service". */
+export function ServerIcon({ className, title }: IconProps) {
+  return (
+    <Svg className={className} title={title}>
+      <rect x="3.6" y="4.2" width="16.8" height="6" rx="1.4" />
+      <rect x="3.6" y="13.8" width="16.8" height="6" rx="1.4" />
+      <path d="M7 7.2h.01M7 16.8h.01" />
+    </Svg>
+  );
+}
+
+export function CreditCardIcon({ className, title }: IconProps) {
+  return (
+    <Svg className={className} title={title}>
+      <rect x="2.75" y="5.25" width="18.5" height="13.5" rx="2" />
+      <path d="M2.75 9.9h18.5" />
+      <path d="M6.4 14.8h3.2" />
+    </Svg>
+  );
+}
+
 /* ── Uploads ────────────────────────────────────────────────────────── */
 
 /**
