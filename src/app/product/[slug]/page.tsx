@@ -35,12 +35,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     getLocalizedCategories(locale),
     db.product.findMany({
       where: { active: true, category: product.category, NOT: { id: product.id } },
-      include: { variants: { select: { color: true, colorHex: true } } },
+      include: {
+        variants: { select: { color: true, colorFr: true, colorHex: true } },
+      },
       take: 4,
     }),
     db.product.findMany({
       where: { active: true, NOT: { id: product.id } },
-      include: { variants: { select: { color: true, colorHex: true } } },
+      include: {
+        variants: { select: { color: true, colorFr: true, colorHex: true } },
+      },
       take: 4,
     }),
   ]);
@@ -148,13 +152,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
           <div className="mt-7">
             <VariantPicker
-              variants={product.variants.map((v) => ({
-                id: v.id,
-                size: v.size,
-                color: localizeVariant(v, locale).color,
-                colorHex: v.colorHex,
-                stock: v.stock,
-              }))}
+              variants={product.variants}
               slug={product.slug}
               name={copy.name}
               priceCents={product.priceCents}
@@ -212,7 +210,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 category={p.category}
                 categoryLabel={categories.find((c) => c.key === p.category)?.label}
                 currency={settings.currency}
-                colors={p.variants}
+                colors={p.variants.map((v) => ({
+                  ...localizeVariant(v, locale),
+                  colorHex: v.colorHex,
+                }))}
                 locale={locale}
               />
               );

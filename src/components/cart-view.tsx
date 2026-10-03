@@ -11,6 +11,7 @@ import { BagIcon } from "@/components/icons";
 import type { Locale, TranslationKey } from "@/lib/i18n/translate";
 import { getDictionary, makeTranslator } from "@/lib/i18n/translate";
 import { LOCALE_TAGS } from "@/lib/i18n/config";
+import { pick } from "@/lib/localize";
 
 type Method = "paypack" | "flutterwave" | "stripe";
 
@@ -208,7 +209,7 @@ export function CartView({
                     className="h-3 w-3 rounded-full ring-1 ring-fg/15"
                     style={{ backgroundColor: line.colorHex }}
                   />
-                  {line.color} / {line.size}
+                  {pick(locale, line.colorFr, line.color)} / {line.size}
                 </p>
                 <p className="mt-1 text-xs text-fg/70 sm:hidden">
                   {t("cart.each", { amount: formatMoney(line.priceCents, currency, tag) })}

@@ -3,7 +3,13 @@ export type CartLine = {
   slug: string;
   name: string;
   size: string;
+  /**
+   * `color` is the canonical English value from `Variant.color`; `colorFr` is
+   * carried alongside so the cart can re-render in whichever locale is active
+   * rather than freezing whichever label was on screen when it was added.
+   */
   color: string;
+  colorFr?: string | null;
   colorHex: string;
   image: string;
   priceCents: number;

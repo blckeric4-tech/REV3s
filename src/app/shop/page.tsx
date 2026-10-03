@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/lib/prisma";
 import { getLocalizedSettings, getLocalizedCategories } from "@/lib/settings";
-import { localizeProduct } from "@/lib/localize";
+import { localizeProduct, localizeVariant } from "@/lib/localize";
 import { ProductCard } from "@/components/product-card";
 import { SearchBar } from "@/components/search-bar";
 import { SortSelect } from "@/components/sort-select";
@@ -56,7 +56,9 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
       ...(category ? { category } : {}),
       ...(query ? { OR: searchTerms } : {}),
     },
-    include: { variants: { select: { color: true, colorHex: true } } },
+    include: {
+      variants: { select: { color: true, colorFr: true, colorHex: true } },
+    },
     orderBy: SORTS[sort as keyof typeof SORTS] ?? SORTS.newest,
   });
 
@@ -138,7 +140,10 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
               category={p.category}
               categoryLabel={categories.find((c) => c.key === p.category)?.label}
               currency={settings.currency}
-              colors={p.variants}
+              colors={p.variants.map((v) => ({
+                ...localizeVariant(v, locale),
+                colorHex: v.colorHex,
+              }))}
               priority={i < 4}
               locale={locale}
             />

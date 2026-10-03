@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useCart } from "@/components/cart-provider";
 import { formatMoney } from "@/lib/money";
+import { pick } from "@/lib/localize";
 import type { Locale } from "@/lib/i18n/translate";
 import { makeTranslator } from "@/lib/i18n/translate";
 import { LOCALE_TAGS } from "@/lib/i18n/config";
@@ -11,6 +12,7 @@ type Variant = {
   id: string;
   size: string;
   color: string;
+  colorFr: string | null;
   colorHex: string;
   stock: number;
 };
@@ -39,10 +41,24 @@ export function VariantPicker({
   const tag = LOCALE_TAGS[locale];
 
   const colors = useMemo(() => {
-    const map = new Map<string, { color: string; colorHex: string }>();
-    for (const v of variants) map.set(v.color, { color: v.color, colorHex: v.colorHex });
+    const map = new Map<string, { color: string; colorFr: string | null; colorHex: string }>();
+    for (const v of variants)
+      map.set(v.color, { color: v.color, colorFr: v.colorFr, colorHex: v.colorHex });
     return [...map.values()];
   }, [variants]);
+
+  /**
+   * Selection is keyed on the English colour, never the translated label, so the
+   * cart stores the canonical value that matches `Variant.color` in the database.
+   * Only the text shown to the shopper is localized.
+   */
+  const colorLabel = useCallback(
+    (english: string) => {
+      const entry = colors.find((c) => c.color === english);
+      return pick(locale, entry?.colorFr, english);
+    },
+    [colors, locale],
+  );
 
   const sizes = useMemo(() => {
     const seen = new Set<string>();
@@ -71,6 +87,7 @@ export function VariantPicker({
         name,
         size: selected.size,
         color: selected.color,
+        colorFr: selected.colorFr,
         colorHex: selected.colorHex,
         image,
         priceCents,
@@ -94,7 +111,7 @@ export function VariantPicker({
       <div className="mt-8">
         <div className="flex items-center justify-between">
           <p className="label-xs text-fg/65">{t("product.colour")}</p>
-          <p className="text-xs text-fg/70">{color}</p>
+          <p className="text-xs text-fg/70">{colorLabel(color)}</p>
         </div>
         <div className="mt-3 flex flex-wrap gap-2.5">
           {colors.map((c) => {
@@ -105,8 +122,8 @@ export function VariantPicker({
                 key={c.color}
                 type="button"
                 onClick={() => setColor(c.color)}
-                title={c.color}
-                aria-label={c.color}
+                title={colorLabel(c.color)}
+                aria-label={colorLabel(c.color)}
                 aria-pressed={active}
                 className={`relative h-10 w-10 rounded-full ring-offset-2 transition-all ${
                   active ? "ring-2 ring-fg" : "ring-1 ring-fg/15 hover:ring-fg/40"
@@ -202,7 +219,7 @@ export function VariantPicker({
           {t("product.onlyLeftIn", {
             count: selected.stock,
             size: selected.size,
-            colour: selected.color,
+            colour: colorLabel(selected.color),
           })}
         </p>
       ) : null}

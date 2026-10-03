@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { SITE_SETTINGS_DEFAULTS } from "../src/lib/settings-defaults";
+import { FRENCH_PRODUCTS, FRENCH_COLOURS, FRENCH_BADGES } from "../src/lib/i18n/french-content";
 
 const db = new PrismaClient();
 
@@ -227,15 +228,26 @@ async function main() {
       continue;
     }
 
+    // French goes in only on create. The update above is unconditional, so adding
+    // the `*Fr` fields to `data` would overwrite whatever the shop owner has since
+    // translated in the admin every time the seed is re-run. To fill French on an
+    // existing database, run `npm run db:french:apply`, which only writes blanks.
+    const french = FRENCH_PRODUCTS[p.slug];
+
     await db.product.create({
       data: {
         ...data,
         slug: p.slug,
+        nameFr: french?.name ?? null,
+        taglineFr: french?.tagline ?? null,
+        descriptionFr: french?.description ?? null,
+        badgeFr: french && p.badge ? (FRENCH_BADGES[p.badge] ?? french.badge) : null,
         variants: {
           create: p.colors.flatMap((color) =>
             p.sizes.map((size, i) => ({
               size,
               color,
+              colorFr: FRENCH_COLOURS[color] ?? null,
               colorHex: COLORS[color],
               // deterministic pseudo-stock so restocks look natural
               stock: Math.max(0, p.stockSeed - ((i * 3 + p.colors.indexOf(color) * 2) % 7)),
