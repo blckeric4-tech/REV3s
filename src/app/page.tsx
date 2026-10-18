@@ -151,7 +151,7 @@ export default function HomePage() {
           You are welcome, <span>rav3s</span>
         </h1>
         <div className="divider"></div>
-        <p>Please make sure to perform regular checkups on your website.</p>
+        <p>We are really sorry to tell you that you website is now down. according to that your free plan has ended.</p>
         <div className="footer-note">System Notice</div>
       </div>
     </div>
